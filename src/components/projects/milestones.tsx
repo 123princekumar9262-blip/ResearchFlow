@@ -119,6 +119,7 @@ export function MilestoneList({
       ) : (
         <button
           type="button"
+          data-tour="add-milestone"
           onClick={() => setAdding(true)}
           className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
         >

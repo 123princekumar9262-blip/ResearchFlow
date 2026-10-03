@@ -696,6 +696,25 @@ describe("push subscriptions", () => {
   });
 });
 
+describe("onboarding progress", () => {
+  it("starts empty for a new account and is editable by its owner only", async () => {
+    const fresh = await signUp(db, { name: "Nia New", role: "student" });
+    const { onboarding } = await one(db, "select onboarding from profiles where id = $1", [fresh]);
+    assert.deepEqual(onboarding, {});
+    await as(db, fresh, (tx) => tx.query(`update profiles set onboarding = '{"setup":"done"}' where id = $1`, [fresh]));
+    const after = await one(db, "select onboarding from profiles where id = $1", [fresh]);
+    assert.equal(after.onboarding.setup, "done");
+    await as(db, fresh, (tx) => tx.query(`update profiles set onboarding = '{"setup":"skipped"}' where id = $1`, [riya]));
+    const untouched = await one(db, "select onboarding from profiles where id = $1", [riya]);
+    assert.notEqual(untouched.onboarding.setup, "skipped");
+  });
+
+  it("refuses an oversized record", async () => {
+    const big = JSON.stringify({ seen: Array.from({ length: 2000 }, (_, i) => `chapter-${i}`) });
+    await expectError(() => as(db, riya, (tx) => tx.query("update profiles set onboarding = $1::jsonb where id = $2", [big, riya])), /profiles_onboarding_small/);
+  });
+});
+
 describe("sanity", () => {
   it("leaves today's helper consistent with the database clock", async () => {
     const { d } = await one(db, "select current_date::text as d");

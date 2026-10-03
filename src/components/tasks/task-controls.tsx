@@ -26,9 +26,12 @@ export function TaskStatusPanel({
   hasProfessor,
   evidenceCount,
   openDependencies,
+  logHref,
   compact = false,
 }: {
   task: Pick<Task, "id" | "status" | "requires_review">;
+  /** Where "Link a log" goes when evidence is missing (students). */
+  logHref?: string;
   isProfessor: boolean;
   hasProfessor: boolean;
   evidenceCount: number;
@@ -54,7 +57,7 @@ export function TaskStatusPanel({
   const closeStatus: TaskStatus = task.requires_review ? "in_review" : "done";
   const blockedReason =
     evidenceCount === 0
-      ? "Add evidence first: link today's log to this task, or attach a file or link below."
+      ? null
       : openDependencies.length > 0
         ? `Finish ${openDependencies.length === 1 ? `"${openDependencies[0]}"` : `${openDependencies.length} dependencies`} first.`
         : null;
@@ -70,11 +73,28 @@ export function TaskStatusPanel({
       {(task.status === "in_progress" || task.status === "changes_requested") && (
         <>
           {task.status === "changes_requested" && !compact && (
-            <p className="rounded-md bg-danger/5 px-3 py-2 text-xs text-danger">Your professor requested changes. Address the remarks, then resubmit.</p>
+            <p data-tour="changes-requested" className="rounded-md bg-danger/5 px-3 py-2 text-xs text-danger">
+              Your professor requested changes. Address each remark, then submit again.{" "}
+              <a href="#activity" className="font-medium underline-offset-2 hover:underline">
+                See remarks
+              </a>
+            </p>
           )}
-          <Button className="w-full" onClick={() => go(closeStatus)} disabled={pending || !!blockedReason}>
+          <Button className="w-full" onClick={() => go(closeStatus)} disabled={pending || !!blockedReason || evidenceCount === 0}>
             {pending ? <Loader2 className="animate-spin" /> : task.requires_review ? <Send /> : <Check />} {closeLabel}
           </Button>
+          {evidenceCount === 0 && (
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-warning/30 bg-warning/[0.06] px-2.5 py-2 text-xs">
+              <span>
+                <b className="font-semibold">Add evidence first.</b> Link today&apos;s log or attach a file. Professors approve proof, not claims.
+              </span>
+              {logHref && (
+                <Link href={logHref} className="font-medium text-primary hover:underline">
+                  Link a log
+                </Link>
+              )}
+            </p>
+          )}
           {blockedReason && <p className="text-xs text-muted-foreground">{blockedReason}</p>}
           {task.status === "in_progress" && !compact && (
             <Button variant="ghost" size="sm" className="w-full" onClick={() => go("todo")} disabled={pending}>

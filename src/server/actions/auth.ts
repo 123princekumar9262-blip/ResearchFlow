@@ -65,14 +65,14 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
     ...creds,
     options: {
       data: { full_name: fullName, role, timezone },
-      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/dashboard`,
+      emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/welcome`,
     },
   });
   if (error) {
     return { error: error.code === "user_already_exists" ? "An account with that email already exists. Sign in instead." : error.message, email };
   }
   // With email confirmation off, Supabase signs the user straight in.
-  if (data.session) redirect("/dashboard?welcome=1");
+  if (data.session) redirect("/welcome");
   return { notice: `We sent a confirmation link to ${creds.email}. Open it to finish signing up.`, email };
 }
 

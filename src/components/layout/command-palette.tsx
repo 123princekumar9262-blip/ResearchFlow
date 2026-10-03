@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
-import { FolderKanban, Laptop, Moon, NotebookPen, Plus, Search, Sun } from "lucide-react";
+import { FolderKanban, Laptop, Moon, NotebookPen, Play, Plus, Search, Sparkles, Sun } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -17,6 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { navFor, PROJECTS_ITEM, SETTINGS_ITEM } from "./nav";
 import type { UserRole } from "@/types/database";
+import { openHelp, OPEN_SHORTCUTS_EVENT } from "@/components/onboarding/help";
+import { requestTour } from "@/components/onboarding/provider";
+import { chapterForPath } from "@/lib/onboarding/tours";
+import { TOUR_LABEL } from "@/lib/onboarding/state";
 
 const OPEN_EVENT = "researchflow:open-palette";
 
@@ -35,6 +39,8 @@ function isTyping(target: EventTarget | null): boolean {
  */
 export function CommandPalette({ role, projects }: { role: UserRole; projects: { id: string; title: string }[] }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const here = chapterForPath(pathname, role);
   const { setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -70,11 +76,14 @@ export function CommandPalette({ role, projects }: { role: UserRole; projects: {
       }
     };
     const onOpen = () => setOpen(true);
+    const onShortcuts = () => setHelpOpen(true);
     window.addEventListener("keydown", onKey);
     window.addEventListener(OPEN_EVENT, onOpen);
+    window.addEventListener(OPEN_SHORTCUTS_EVENT, onShortcuts);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener(OPEN_EVENT, onOpen);
+      window.removeEventListener(OPEN_SHORTCUTS_EVENT, onShortcuts);
     };
   }, [router, role, nav]);
 
@@ -98,6 +107,24 @@ export function CommandPalette({ role, projects }: { role: UserRole; projects: {
             <CommandItem onSelect={() => go("/projects?new=1")}>
               <Plus /> New project
             </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setOpen(false);
+                requestTour("core");
+              }}
+            >
+              <Play /> Take the tour
+            </CommandItem>
+            {here && (
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  requestTour(here);
+                }}
+              >
+                <Sparkles /> Tour this page: {here === "project" ? "Project" : TOUR_LABEL[here]}
+              </CommandItem>
+            )}
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Go to">
@@ -156,6 +183,16 @@ export function CommandPalette({ role, projects }: { role: UserRole; projects: {
               <span className="font-mono text-xs">{keys}</span>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={() => {
+              setHelpOpen(false);
+              setTimeout(openHelp, 150);
+            }}
+            className="mt-3 text-sm font-medium text-primary hover:underline"
+          >
+            Tours
+          </button>
         </div>
       </CommandDialog>
     </>

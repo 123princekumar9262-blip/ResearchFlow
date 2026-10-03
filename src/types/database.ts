@@ -24,6 +24,8 @@ export type Database = {
           join_code: string | null;
           timezone: string;
           digest_email: boolean;
+          /** Missing until migration 8 is applied. */
+          onboarding?: Json;
           created_at: string;
         };
         Insert: {
@@ -38,6 +40,7 @@ export type Database = {
           full_name?: string;
           timezone?: string;
           digest_email?: boolean;
+          onboarding?: Json;
         };
         Relationships: [];
       };

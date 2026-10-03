@@ -1,3 +1,5 @@
+import { ChapterTrigger } from "@/components/onboarding/tips";
+import { FirstMilestoneTip } from "@/components/onboarding/tip-kinds";
 import Link from "next/link";
 import { ArrowRight, CircleDot, Flag, Info, MessageSquareText, NotebookPen, OctagonAlert, Scale } from "lucide-react";
 import { cn } from "cn";
@@ -38,8 +40,10 @@ export default async function ProjectOverviewPage({ params }: PageProps<"/projec
 
   return (
     <div className="grid gap-5 lg:grid-cols-3">
+      <ChapterTrigger tour="project" />
       <div className="rf-stagger space-y-5 lg:col-span-2">
-        <Section icon={Flag} title="Milestones" count={milestones.length}>
+        {milestones.length === 0 && <FirstMilestoneTip />}
+        <Section icon={Flag} title="Milestones" count={milestones.length} tour="milestones">
           <MilestoneList projectId={projectId} milestones={milestones} today={today} canSetDueDate={b.canSetProfessorDeadline} />
         </Section>
 

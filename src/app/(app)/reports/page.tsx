@@ -2,10 +2,20 @@ import { CheckCircle2, Circle, CircleDashed, ScrollText, Send } from "lucide-rea
 import { EmptyState, PageHeader, RowLink, UserAvatar } from "@/components/common/ui-bits";
 import { requireSession } from "@/lib/auth";
 import { firstReportWeek, readStats } from "@/lib/data/reports";
-import { addDays, formatDay, formatMinutes, isoWeekNumber, timeAgo, weekStartOf } from "@/lib/domain/dates";
+import { addDays, formatDay, formatMinutes, isoWeekday, isoWeekNumber, timeAgo, weekStartOf } from "@/lib/domain/dates";
 import { summarize } from "@/lib/domain/weekly-report";
+import { Tip } from "@/components/onboarding/tips";
+
+function hourIn(timeZone: string): number {
+  return Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone }).format(new Date()));
+}
 
 export const metadata = { title: "Weekly reports" };
+
+/** An ISO timestamp n days back, for "waiting more than n days". */
+function isoDaysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString();
+}
 
 export default async function ReportsPage() {
   const { supabase, userId, profile, today } = await requireSession();
@@ -20,9 +30,22 @@ export default async function ReportsPage() {
       .limit(100);
     const reports = data ?? [];
     const weeks = [...new Set(reports.map((r) => r.week_start))];
+    const twoDaysAgo = isoDaysAgo(2);
+    const waiting = reports.filter((r) => !r.acknowledged_at && r.submitted_at && r.submitted_at < twoDaysAgo).at(-1);
     return (
       <>
         <PageHeader inTopBar title="Weekly reports" description="Submitted by your students. Acknowledge them so they know you read them." />
+        {waiting && (
+          <Tip
+            id="report-unacked"
+            kind="state"
+            className="mb-4"
+            title={`${waiting.student?.full_name ?? "A student"}'s report is waiting.`}
+            cta={{ label: "Read report", href: `/reports/${waiting.week_start}?student=${waiting.student_id}` }}
+          >
+            Acknowledge it so they know it was read.
+          </Tip>
+        )}
         {reports.length === 0 ? (
           <div className="rounded-xl border bg-card">
             <EmptyState icon={ScrollText} title="No reports submitted yet">
@@ -76,10 +99,16 @@ export default async function ReportsPage() {
     .eq("student_id", userId)
     .gte("week_start", weeks.at(-1)!);
   const byWeek = new Map((data ?? []).map((r) => [r.week_start, r]));
+  const reportDue = isoWeekday(today) === 7 && hourIn(profile.timezone) >= 18 && !byWeek.get(current)?.submitted_at;
 
   return (
     <>
       <PageHeader inTopBar title="Weekly reports" description="Generated from your logs and tasks. Add a note, submit, done: no status emails." />
+      {reportDue && (
+        <Tip id="report-due" kind="state" className="mb-4" title="This week's report is ready." cta={{ label: "Open report", href: `/reports/${current}` }}>
+          Add a note and submit it before Monday.
+        </Tip>
+      )}
       <div className="divide-y rounded-xl border bg-card">
         {weeks.map((w) => {
           const r = byWeek.get(w);

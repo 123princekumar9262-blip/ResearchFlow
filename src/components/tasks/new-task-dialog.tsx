@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { DeadlinePicker } from "@/components/common/deadline-picker";
 import { useServerAction } from "@/components/common/use-server-action";
 import { createTask } from "@/server/actions/tasks";
+import { ChapterTrigger } from "@/components/onboarding/tips";
+import { useOnboardingMaybe } from "@/components/onboarding/provider";
 
 const NONE = "";
 
@@ -49,6 +51,9 @@ export function NewTaskDialog({
   const [personalDeadline, setPersonalDeadline] = useState<string | null>(null);
   const markers = { milestones: milestones.flatMap((m) => (m.due_date ? [{ date: m.due_date, title: m.title }] : [])), load };
   const { pending, run } = useServerAction();
+  const onboarding = useOnboardingMaybe();
+  // "No deadline set" (spec Phase 07): asked the first three times a task has no deadline.
+  const [held, setHeld] = useState<{ form: FormData; again: boolean; el: HTMLFormElement } | null>(null);
   const students = members.filter((m) => m.role === "student");
   const defaultAssignee = students.some((s) => s.user_id === me) ? me : students.length === 1 ? students[0].user_id : NONE;
 
@@ -64,6 +69,16 @@ export function NewTaskDialog({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const send = (el: HTMLFormElement, data: FormData, again: boolean) => {
+    submit(data, again);
+    if (again) {
+      el.reset();
+      setProfDeadline(null);
+      setPersonalDeadline(null);
+      (el.elements.namedItem("title") as HTMLInputElement)?.focus();
+    }
+  };
 
   const submit = (form: FormData, again: boolean) =>
     run(
@@ -91,23 +106,25 @@ export function NewTaskDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
+        <Button size="sm" data-tour="new-task">
           <Plus /> New task <kbd className="ml-1 border-white/20 bg-white/10 text-inherit">C</kbd>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" data-tour="new-task-dialog">
+        <ChapterTrigger tour="tasks" part="tasks-dialog" inDialog />
         <form
           onSubmit={(e) => {
             e.preventDefault();
             const again = (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "again";
             const form = e.currentTarget;
-            submit(new FormData(form), again);
-            if (again) {
-              form.reset();
-              setProfDeadline(null);
-              setPersonalDeadline(null);
-              (form.elements.namedItem("title") as HTMLInputElement)?.focus();
+            const hints = onboarding?.state.hints ?? 0;
+            if (onboarding && !profDeadline && !personalDeadline && hints < 3 && !held) {
+              onboarding.update({ hints: hints + 1 });
+              setHeld({ form: new FormData(form), again, el: form });
+              return;
             }
+            setHeld(null);
+            send(form, new FormData(form), again);
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.requestSubmit();
@@ -149,7 +166,7 @@ export function NewTaskDialog({
                 ))}
               </NativeSelect>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-tour="nt-prof-deadline">
               <Label htmlFor="nt-pd" className="flex items-center gap-1">
                 Professor deadline {!canSetProfessorDeadline && <Lock className="size-3" />}
               </Label>
@@ -167,7 +184,7 @@ export function NewTaskDialog({
                 placeholder={canSetProfessorDeadline ? "None" : "Set by your professor"}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-tour="nt-my-deadline">
               <Label htmlFor="nt-md">Your deadline</Label>
               <DeadlinePicker
                 id="nt-md"
@@ -197,6 +214,27 @@ export function NewTaskDialog({
             <p className="text-xs text-muted-foreground">
               Your professor sets professor deadlines. Set your own earlier target so you finish with a buffer.
             </p>
+          )}
+          {held && !profDeadline && !personalDeadline && (
+            <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-warning/30 bg-warning/[0.07] px-3 py-2 text-[12.5px]">
+              <span className="min-w-0 flex-[1_1_14rem]">
+                <b className="font-semibold">No deadline set.</b> Tasks without deadlines drift. Add one, even a rough one.
+              </span>
+              <Button type="button" size="xs" variant="outline" onClick={() => document.getElementById(canSetProfessorDeadline ? "nt-pd" : "nt-md")?.click()}>
+                Add deadline
+              </Button>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  const h = held;
+                  setHeld(null);
+                  send(h.el, h.form, h.again);
+                }}
+              >
+                Create anyway
+              </button>
+            </div>
           )}
           <DialogFooter>
             <Button type="submit" variant="ghost" value="again" disabled={pending}>

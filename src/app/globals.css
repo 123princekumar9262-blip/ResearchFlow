@@ -301,3 +301,185 @@
   background-size: 200% 100%;
   animation: rf-shimmer 1.2s linear infinite;
 }
+
+/* ───────────── Product tour (onboarding spec, Phase 04) ───────────── */
+:root {
+  --tour-scrim: rgba(14, 14, 22, 0.62);
+  --tour-scrim-soft: rgba(14, 14, 22, 0.28);
+  --tour-glow: color-mix(in srgb, var(--primary) 26%, transparent);
+}
+.dark {
+  --tour-scrim: rgba(0, 0, 0, 0.68);
+  --tour-scrim-soft: rgba(0, 0, 0, 0.36);
+}
+.rf-tour-spot {
+  transition:
+    left 0.36s cubic-bezier(0.2, 0.8, 0.2, 1),
+    top 0.36s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.36s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.36s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.rf-tour-ring-full {
+  box-shadow:
+    0 0 0 9999px var(--tour-scrim),
+    0 0 0 2px var(--primary),
+    0 0 0 8px var(--tour-glow);
+  animation: rf-tour-fade-in 0.2s ease-out both;
+}
+.rf-tour-ring {
+  box-shadow:
+    0 0 0 2px var(--primary),
+    0 0 0 8px var(--tour-glow);
+}
+.rf-tour-ring-arrive {
+  animation: rf-tour-arrive 0.6s ease-out 1;
+}
+.rf-tour-card-in {
+  animation: rf-tour-card-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s both;
+}
+.rf-tour-fade {
+  animation: rf-tour-fade-in 0.3s ease-out both;
+}
+.rf-tour-bounce {
+  animation: rf-tour-bounce 0.7s ease-out 1;
+}
+.rf-tour-glow {
+  animation: rf-tour-glow 0.9s ease-out 1;
+}
+.rf-tour-check {
+  stroke-dasharray: 24;
+  animation: rf-tour-check 0.5s ease-out 0.15s both;
+}
+@keyframes rf-tour-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rf-tour-arrive {
+  0% {
+    box-shadow: 0 0 0 0 var(--tour-glow);
+  }
+  60% {
+    box-shadow: 0 0 0 12px var(--tour-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes rf-tour-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@keyframes rf-tour-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+  60% {
+    transform: translateY(0);
+  }
+  80% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes rf-tour-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--tour-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--primary),
+      0 0 0 12px var(--tour-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes rf-tour-check {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rf-tour-spot {
+    transition: none;
+  }
+  .rf-tour-ring-arrive,
+  .rf-tour-bounce,
+  .rf-tour-glow,
+  .rf-tour-check {
+    animation: none;
+  }
+  .rf-tour-card-in {
+    animation: rf-tour-fade-in 0.12s ease-out both;
+  }
+}
+
+/* ───────────── Welcome flow (onboarding spec, Phase 02) ───────────── */
+.rf-welcome-in {
+  animation: rf-welcome-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.rf-welcome-back {
+  animation: rf-welcome-back 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.rf-welcome-logo {
+  animation: rf-welcome-up 0.45s ease-out both;
+}
+.rf-welcome-chip {
+  animation: rf-welcome-drop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.rf-welcome-line {
+  animation: rf-welcome-line 0.5s ease-out 0.55s both;
+}
+.rf-welcome-late {
+  animation: rf-welcome-up 0.4s ease-out both;
+}
+@keyframes rf-welcome-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes rf-welcome-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+@keyframes rf-welcome-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes rf-welcome-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+@keyframes rf-welcome-line {
+  from {
+    opacity: 0;
+    transform: scaleX(0.3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rf-welcome-in,
+  .rf-welcome-back,
+  .rf-welcome-logo,
+  .rf-welcome-chip,
+  .rf-welcome-line,
+  .rf-welcome-late {
+    animation: rf-tour-fade-in 0.2s ease-out both;
+    animation-delay: 0s !important;
+  }
+}

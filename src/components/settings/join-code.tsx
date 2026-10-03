@@ -6,16 +6,24 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { useServerAction } from "@/components/common/use-server-action";
 import { regenerateJoinCode } from "@/server/actions/profile";
+import { useOnboardingMaybe } from "@/components/onboarding/provider";
 
 export function formatCode(code: string) {
   return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
 }
 
+/** Ready-to-send text for students: the app link and the code. */
+export function inviteMessage(code: string, origin: string) {
+  const host = origin.replace(/^https?:\/\//, "");
+  return `I'm using ResearchFlow to track our project deadlines and weekly progress. Sign up at ${host} as a Student, then enter my join code in Settings: ${formatCode(code)}`;
+}
+
 /** A professor's join code, for students to link with. */
 export function JoinCodeCard({ code, compact }: { code: string; compact?: boolean }) {
   const { pending, run } = useServerAction();
+  const onboarding = useOnboardingMaybe();
   return (
-    <div className={cn("flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center", compact && "border-dashed py-3")}>
+    <div data-tour="join-code" className={cn("flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center", compact && "border-dashed py-3")}>
       <KeyRound className="hidden size-5 text-muted-foreground sm:block" aria-hidden />
       <div className="flex-1">
         <p className="font-medium">Your join code</p>
@@ -27,7 +35,12 @@ export function JoinCodeCard({ code, compact }: { code: string; compact?: boolea
           variant="outline"
           size="icon-sm"
           aria-label="Copy code"
-          onClick={() => navigator.clipboard.writeText(formatCode(code)).then(() => toast.success("Code copied"))}
+          onClick={() =>
+            navigator.clipboard.writeText(formatCode(code)).then(() => {
+              toast.success("Code copied");
+              if (onboarding && !onboarding.state.shared) onboarding.update({ shared: true });
+            })
+          }
         >
           <Copy />
         </Button>

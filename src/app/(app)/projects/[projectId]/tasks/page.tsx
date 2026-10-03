@@ -5,6 +5,7 @@ import { EmptyState, UserAvatar } from "@/components/common/ui-bits";
 import { PriorityIcon, StatusLabel } from "@/components/common/status";
 import { BoardFilters } from "@/components/tasks/board-filters";
 import { NewTaskDialog } from "@/components/tasks/new-task-dialog";
+import { FirstTaskTip } from "@/components/onboarding/tip-kinds";
 import { MobileTaskList } from "@/components/tasks/mobile-task-list";
 import { TaskBoard, type BoardTask } from "@/components/tasks/task-board";
 import { TaskDeadlines } from "@/components/tasks/task-row";
@@ -70,7 +71,10 @@ export default async function ProjectTasksPage({ params, searchParams }: PagePro
                 key={v.key}
                 href={v.href}
                 aria-current={active ? "page" : undefined}
-                className={cn("flex h-7 items-center gap-1.5 rounded px-2.5 text-xs", active ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground")}
+                className={cn(
+                  "flex h-7 items-center gap-1.5 rounded px-2.5 text-xs",
+                  active ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 <v.icon className="size-3.5" /> {v.label}
               </Link>
@@ -78,7 +82,9 @@ export default async function ProjectTasksPage({ params, searchParams }: PagePro
           })}
         </div>
         <BoardFilters
-          assignees={b.members.filter((m) => m.role === "student" || b.tasks.some((t) => t.assignee_id === m.user_id)).map((m) => ({ value: m.user_id, label: m.user_id === b.userId ? "Me" : m.full_name }))}
+          assignees={b.members
+            .filter((m) => m.role === "student" || b.tasks.some((t) => t.assignee_id === m.user_id))
+            .map((m) => ({ value: m.user_id, label: m.user_id === b.userId ? "Me" : m.full_name }))}
           milestones={b.milestones.map((m) => ({ value: m.id, label: m.title }))}
           doneCount={allTasks.filter((t) => t.status === "done").length}
         />
@@ -105,10 +111,13 @@ export default async function ProjectTasksPage({ params, searchParams }: PagePro
       {tasks.length === 0 && allTasks.length > 0 ? (
         <p className="rounded-xl border bg-card px-4 py-8 text-center text-muted-foreground">No tasks match these filters.</p>
       ) : tasks.length === 0 ? (
-        <div className="rounded-xl border bg-card">
-          <EmptyState icon={ListTodo} title="No tasks yet">
-            Break the first milestone into tasks you can finish in a few days. Press <kbd>C</kbd> to create one.
-          </EmptyState>
+        <div className="space-y-3">
+          <FirstTaskTip />
+          <div className="rounded-xl border bg-card">
+            <EmptyState icon={ListTodo} title="No tasks yet">
+              Break the first milestone into tasks you can finish in a few days. Press <kbd>C</kbd> to create one.
+            </EmptyState>
+          </div>
         </div>
       ) : listView ? (
         <>
@@ -156,7 +165,10 @@ function TaskList({ tasks, milestones, today, locked }: { tasks: BoardTask[]; mi
           <tbody key={g.key} className="divide-y border-b last:border-0">
             <tr className="bg-muted/40">
               <th colSpan={5} className="px-4 py-1.5 text-xs font-medium">
-                {g.title} <span className="font-normal text-muted-foreground">· {g.tasks.filter((t) => t.status === "done").length}/{g.tasks.length} done</span>
+                {g.title}{" "}
+                <span className="font-normal text-muted-foreground">
+                  · {g.tasks.filter((t) => t.status === "done").length}/{g.tasks.length} done
+                </span>
               </th>
             </tr>
             {g.tasks.map((t) => (

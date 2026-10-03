@@ -36,7 +36,7 @@ export function ProjectTabs({ projectId, counts }: { projectId: string; counts: 
     return () => window.removeEventListener("keydown", onKey);
   }, [current, hrefs, router]);
   return (
-    <nav aria-label="Project sections" className="-mx-4 mb-6 overflow-x-auto border-b px-4 md:mx-0 md:px-0">
+    <nav aria-label="Project sections" data-tour="project-tabs" className="-mx-4 mb-6 overflow-x-auto border-b px-4 md:mx-0 md:px-0">
       <ul className="flex min-w-max gap-1">
         {TABS.map((tab) => {
           const href = tab.slug ? `${base}/${tab.slug}` : base;
@@ -47,6 +47,7 @@ export function ProjectTabs({ projectId, counts }: { projectId: string; counts: 
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
+                data-tour={`tab-${tab.slug || "overview"}`}
                 className={cn(
                   "relative flex h-9 items-center gap-1.5 px-2.5 text-[13px] transition-colors",
                   active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",

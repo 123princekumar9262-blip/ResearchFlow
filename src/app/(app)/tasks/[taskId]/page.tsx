@@ -6,6 +6,7 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { ProgressBar, Section } from "@/components/common/ui-bits";
 import { MobileDetails } from "@/components/common/mobile-details";
+import { ChapterTrigger } from "@/components/onboarding/tips";
 import { StatusPill } from "@/components/common/status";
 import { DeadlineChip } from "@/components/common/deadline-chip";
 import { AttachmentList } from "@/components/files/attachment-list";
@@ -159,8 +160,10 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
             </a>
           )}
 
+          <ChapterTrigger tour="tasks" part="tasks-page" />
           <Section
             icon={Paperclip}
+            tour="evidence"
             title="Evidence"
             count={evidenceCount}
             action={evidenceCount > 0 ? <span className="font-mono">{formatMinutes(minutes)} logged</span> : undefined}
@@ -222,20 +225,20 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
             {isProfessor && task.status === "in_review" ? (
               <ReviewPanel taskId={taskId} />
             ) : (
-              <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 rounded-xl border bg-card/95 p-3 shadow-lg backdrop-blur">
-                <TaskStatusPanel task={task} isProfessor={isProfessor} hasProfessor={b.hasProfessor} evidenceCount={evidenceCount} openDependencies={openDeps.map((d) => d.title)} compact />
+              <div data-tour="status-panel" className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 rounded-xl border bg-card/95 p-3 shadow-lg backdrop-blur">
+                <TaskStatusPanel task={task} isProfessor={isProfessor} hasProfessor={b.hasProfessor} evidenceCount={evidenceCount} openDependencies={openDeps.map((d) => d.title)} logHref={isProfessor ? undefined : logHref} compact />
               </div>
             )}
           </div>
         </div>
 
         <aside className="rf-stagger space-y-3 lg:sticky lg:top-16 lg:self-start">
-          <div className="max-md:hidden">
+          <div className="max-md:hidden" data-tour="status-panel">
             {isProfessor && task.status === "in_review" ? (
               <ReviewPanel taskId={taskId} />
             ) : (
               <div className="rounded-[10px] border bg-card p-3">
-                <TaskStatusPanel task={task} isProfessor={isProfessor} hasProfessor={b.hasProfessor} evidenceCount={evidenceCount} openDependencies={openDeps.map((d) => d.title)} />
+                <TaskStatusPanel task={task} isProfessor={isProfessor} hasProfessor={b.hasProfessor} evidenceCount={evidenceCount} openDependencies={openDeps.map((d) => d.title)} logHref={isProfessor ? undefined : logHref} />
               </div>
             )}
           </div>
@@ -279,12 +282,16 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
               today={today}
               load={load}
               extensionSlot={
-                canRequestExtension ? <RequestExtensionButton projectId={task.project_id} taskId={taskId} currentDeadline={task.professor_deadline} today={today} /> : undefined
+                canRequestExtension ? (
+                  <span key="extension" data-tour="extension" className="inline-flex">
+                    <RequestExtensionButton projectId={task.project_id} taskId={taskId} currentDeadline={task.professor_deadline} today={today} />
+                  </span>
+                ) : undefined
               }
             />
           </div>
 
-          <div className="rounded-[10px] border bg-card p-3">
+          <div className="rounded-[10px] border bg-card p-3" data-tour="dependencies">
             <DependencyEditor
               taskId={taskId}
               dependsOn={dependsOn}

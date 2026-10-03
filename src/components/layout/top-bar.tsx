@@ -23,6 +23,7 @@ import { InboxBell } from "./inbox";
 import { CRUMB_SLOT_ID } from "./page-crumbs";
 import { formatDay } from "@/lib/domain/dates";
 import { InstallMenuItem } from "@/components/pwa/install";
+import { HelpMenu } from "@/components/onboarding/help";
 
 /** The page's name for the top bar, until a page supplies its own breadcrumb. */
 function titleFor(pathname: string, role: string): string {
@@ -56,11 +57,12 @@ export function TopBar({ name, role, inbox, today }: { name: string; role: strin
       <SearchButton />
       {role === "student" && (
         <Button variant="outline" size="sm" className="hidden h-8 gap-1.5 sm:inline-flex" asChild>
-          <Link href="/log/new">
+          <Link href="/log/new" data-tour="log-button">
             <Plus className="size-3.5" /> Log <kbd>N</kbd>
           </Link>
         </Button>
       )}
+      <HelpMenu />
       <InboxBell items={inbox} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

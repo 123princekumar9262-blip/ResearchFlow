@@ -34,7 +34,7 @@ export default async function SettingsPage() {
         <Section icon={Palette} title="Appearance">
           <ThemePicker />
         </Section>
-        <Section icon={BellRing} title="Notifications">
+        <Section id="notifications" icon={BellRing} title="Notifications">
           <NotificationsCard digestEmail={profile.digest_email ?? true} emailReady={isEmailConfigured()} />
         </Section>
         <Section icon={Smartphone} accent="success" title="App">

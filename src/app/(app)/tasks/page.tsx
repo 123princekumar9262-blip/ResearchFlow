@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AlarmClock, CalendarDays, Hourglass, ListChecks } from "lucide-react";
 import { cn } from "cn";
 import { EmptyState, PageHeader, Section, SectionGroup } from "@/components/common/ui-bits";
+import { Tip } from "@/components/onboarding/tips";
 import { TaskRow } from "@/components/tasks/task-row";
 import { getWorkspace } from "@/lib/data/workspace";
 import { addDays, formatDay } from "@/lib/domain/dates";
@@ -74,6 +75,18 @@ export default async function MyTasksPage({ searchParams }: PageProps<"/tasks">)
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader inTopBar title="My tasks" description="Everything assigned to you, across projects." />
+      {sets.overdue.length > 0 && view !== "overdue" && (
+        <Tip
+          id="overdue"
+          kind="state"
+          tone="danger"
+          className="mb-4"
+          title={`You have ${sets.overdue.length} overdue task${sets.overdue.length === 1 ? "" : "s"}.`}
+          cta={{ label: "Review overdue", href: "/tasks?view=overdue" }}
+        >
+          Review them now: finish them, or request an extension.
+        </Tip>
+      )}
       <div className="-mx-4 mb-4 overflow-x-auto px-4 md:mx-0 md:px-0">
         <div className="inline-flex min-w-max rounded-lg border bg-card p-0.5" role="tablist" aria-label="Views">
           {VIEWS.map((v) => {

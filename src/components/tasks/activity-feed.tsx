@@ -55,7 +55,7 @@ export function ActivityFeed({
   };
 
   return (
-    <section aria-labelledby="activity-heading" className="space-y-3">
+    <section id="activity" aria-labelledby="activity-heading" className="scroll-mt-20 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="activity-heading" className="text-[13px] font-semibold">
           Activity

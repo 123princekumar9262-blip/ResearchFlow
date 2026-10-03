@@ -140,6 +140,8 @@ export function LogForm({
     run(() => saveLog({ projectId, logDate, completedWork: completed, problems, nextSteps, minutesSpent: minutes, taskIds }), {
       onSuccess: () => {
         setRawDraft(null);
+        // The product tour waits for the first entry (onboarding spec, core step 8).
+        window.dispatchEvent(new Event("rf:log-saved"));
         onSaved?.();
       },
     });
@@ -152,6 +154,7 @@ export function LogForm({
     <form
       id={variant === "page" ? "new" : undefined}
       ref={formRef}
+      data-tour="log-form"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -180,7 +183,7 @@ export function LogForm({
             </option>
           ))}
         </select>
-        <div className="inline-flex rounded-md border p-0.5" role="radiogroup" aria-label="Day">
+        <div className="inline-flex rounded-md border p-0.5" role="radiogroup" aria-label="Day" data-tour="log-day">
           {days.map((d, i) => (
             <button
               key={d}
@@ -222,7 +225,7 @@ export function LogForm({
         </div>
       )}
 
-      <div className="space-y-1.5">
+      <div className="space-y-1.5" data-tour="log-done">
         <Label htmlFor="log-done" className="gap-1.5">
           <CircleCheck className="size-3.5 text-success" /> What did you complete?
         </Label>
@@ -236,13 +239,13 @@ export function LogForm({
         />
       </div>
       <div className="grid gap-3.5 md:grid-cols-2">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-tour="log-problems">
           <Label htmlFor="log-problems" className="gap-1.5">
             <CircleAlert className="size-3.5 text-warning" /> Problems or what failed
           </Label>
           <Textarea id="log-problems" value={problems} onChange={(e) => setProblems(e.target.value)} rows={2} placeholder="OOM on config 4 at batch 128" />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-tour="log-next">
           <Label htmlFor="log-next" className="gap-1.5">
             <ArrowRight className="size-3.5 text-muted-foreground" /> Next steps
           </Label>
@@ -251,7 +254,7 @@ export function LogForm({
       </div>
 
       <div className="grid gap-x-5 gap-y-3.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-tour="log-time">
           <Label htmlFor="log-time">Time spent</Label>
           <div className="flex flex-wrap items-center gap-1.5">
             <Input
@@ -285,7 +288,7 @@ export function LogForm({
           </div>
         </div>
 
-        <div className="min-w-0 space-y-1.5">
+        <div className="min-w-0 space-y-1.5" data-tour="log-evidence">
           <Label>Counts as evidence for</Label>
           <div className="flex flex-wrap gap-1.5">
             {taskIds.map((id) => {
@@ -332,7 +335,7 @@ export function LogForm({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-t pt-3">
+      <div className="flex flex-wrap items-center gap-3 border-t pt-3" data-tour="log-attach">
         {current ? (
           <EvidenceUploader projectId={projectId} target={{ logId: current.id }} compact />
         ) : (

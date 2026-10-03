@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { StatusIcon } from "@/components/common/status";
 import { MonthNav } from "@/components/calendar/month-nav";
+import { ChapterTrigger } from "@/components/onboarding/tips";
 import { CalendarGrid, type CalendarItem } from "@/components/calendar/calendar-grid";
 import { getWorkspace } from "@/lib/data/workspace";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -84,6 +85,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
   return (
     <>
+      <ChapterTrigger tour="calendar" ready={Object.values(items).some((list) => list.length > 0)} />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {view === "month" ? (
           <MonthNav prev={prev} next={next} today={today.slice(0, 7)} label={formatMonthLong(first)} />
@@ -107,7 +109,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
             </Button>
           </div>
         )}
-        <span className="inline-flex rounded-md border p-0.5 text-xs max-md:hidden md:ml-auto">
+        <span className="inline-flex rounded-md border p-0.5 text-xs max-md:hidden md:ml-auto" data-tour="cal-view">
           {(["month", "week"] as const).map((v) => (
             <Link
               key={v}

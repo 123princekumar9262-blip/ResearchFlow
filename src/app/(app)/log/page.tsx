@@ -5,6 +5,7 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Stat } from "@/components/common/ui-bits";
 import { Heatmap } from "@/components/logs/heatmap";
+import { ChapterTrigger, Tip } from "@/components/onboarding/tips";
 import { LogEntry } from "@/components/logs/log-entry";
 import { LogForm } from "@/components/logs/log-form";
 import { requireSession } from "@/lib/auth";
@@ -29,7 +30,11 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
 
   const [projects, tasks, logs] = await Promise.all([
     supabase.from("projects").select("id, title").in("status", ["active", "on_hold"]).order("updated_at", { ascending: false }),
-    supabase.from("tasks").select("id, title, status, project_id, assignee_id, updated_at").neq("status", "done").order("effective_deadline", { nullsFirst: false }),
+    supabase
+      .from("tasks")
+      .select("id, title, status, project_id, assignee_id, updated_at")
+      .neq("status", "done")
+      .order("effective_deadline", { nullsFirst: false }),
     loadLogs(supabase, { authorId: userId, since: addDays(today, -7 * 12) }, userId),
   ]);
 
@@ -52,7 +57,11 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
   // Six weeks of diary, every weekday shown so gaps are visible; weekends only when logged.
   const firstDay = logs.length ? logs[logs.length - 1].log_date : today;
   const start = [addDays(today, -41), firstDay].sort().at(-1)!;
-  const days = filtering ? [...byDate.keys()] : eachDay(start, today).reverse().filter((d) => byDate.has(d) || isoWeekday(d) <= 5);
+  const days = filtering
+    ? [...byDate.keys()]
+    : eachDay(start, today)
+        .reverse()
+        .filter((d) => byDate.has(d) || isoWeekday(d) <= 5);
 
   const week = minutesPerWeek(logs, today, 1);
   const todayMinutes = logs.filter((l) => l.log_date === today).reduce((sum, l) => sum + l.minutes_spent, 0);
@@ -62,7 +71,12 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
   const tasksParam = typeof params.task === "string" ? [params.task] : [];
   const minutesParam = typeof params.minutes === "string" ? Math.min(1440, Math.max(0, Number(params.minutes) || 0)) : undefined;
   const filterHref = (patch: Record<string, string>) => {
-    const q = new URLSearchParams({ ...(projectFilter && { filter_project: projectFilter }), ...(only && { only }), ...(params.all === "1" && { all: "1" }), ...patch });
+    const q = new URLSearchParams({
+      ...(projectFilter && { filter_project: projectFilter }),
+      ...(only && { only }),
+      ...(params.all === "1" && { all: "1" }),
+      ...patch,
+    });
     for (const [k, v] of [...q.entries()]) if (!v) q.delete(k);
     return `/log${q.size ? `?${q}` : ""}`;
   };
@@ -93,6 +107,12 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
         </Button>
       </div>
 
+      <ChapterTrigger tour="log" ready={composer.projects.length > 0} />
+      {logs.length === 0 && composer.projects.length > 0 && (
+        <Tip id="never-logged" kind="discovery" title="Log your daily progress here." className="mb-4" cta={{ label: "Write today's log", href: "/log/new" }}>
+          Your first entry starts the record.
+        </Tip>
+      )}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="min-w-0 space-y-6">
           <div className="max-md:hidden">
@@ -132,9 +152,16 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
                       </div>
                     )}
                     {/* Phones: the date is a small heading above full-width entries; from sm up, a notebook gutter. */}
-                    <div className={cn("grid grid-cols-1 gap-y-2 sm:grid-cols-[86px_minmax(0,1fr)] sm:gap-x-4 sm:gap-y-0", entries.length === 0 && "sm:items-center")}>
+                    <div
+                      className={cn(
+                        "grid grid-cols-1 gap-y-2 sm:grid-cols-[86px_minmax(0,1fr)] sm:gap-x-4 sm:gap-y-0",
+                        entries.length === 0 && "sm:items-center",
+                      )}
+                    >
                       <div className={cn("max-sm:flex max-sm:items-baseline max-sm:gap-2", entries.length === 0 && "opacity-60")}>
-                        <div className="font-mono text-[10.5px] text-muted-foreground max-sm:order-first">{date === today ? "TODAY" : WEEKDAY[isoWeekday(date) - 1]}</div>
+                        <div className="font-mono text-[10.5px] text-muted-foreground max-sm:order-first">
+                          {date === today ? "TODAY" : WEEKDAY[isoWeekday(date) - 1]}
+                        </div>
                         <div className="text-[15px] leading-tight font-semibold sm:text-[22px]">
                           {Number(date.slice(8))} {MONTHS[Number(date.slice(5, 7)) - 1]}
                         </div>
@@ -168,30 +195,42 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
         </div>
 
         <aside className="min-w-0 space-y-3 max-lg:order-first lg:sticky lg:top-16 lg:self-start">
-          <div className="grid grid-cols-2 gap-3">
-            <Stat label="This week" value={formatMinutes(week.at(-1)?.minutes ?? 0)} icon={Clock} accent="primary" />
-            <Stat label="Streak" value={`${logStreak(logs, today)}d`} hint="days in a row" icon={Flame} accent="deadline" />
-          </div>
-          <div className="rounded-[10px] border bg-card p-3 shadow-[var(--shadow-card)]">
-            <p className="mb-2 text-[12px] font-semibold">
-              Consistency · <span className="max-md:hidden">12 weeks</span>
-              <span className="md:hidden">6 weeks</span>
-            </p>
-            <div className="max-md:hidden">
-              <Heatmap cells={activityByDay(logs, today, 12)} today={today} />
+          <div data-tour="log-record" className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label="This week" value={formatMinutes(week.at(-1)?.minutes ?? 0)} icon={Clock} accent="primary" />
+              <Stat label="Streak" value={`${logStreak(logs, today)}d`} hint="days in a row" icon={Flame} accent="deadline" />
             </div>
-            <div className="md:hidden">
-              <Heatmap cells={activityByDay(logs, today, 6)} today={today} />
+            <div className="rounded-[10px] border bg-card p-3 shadow-[var(--shadow-card)]">
+              <p className="mb-2 text-[12px] font-semibold">
+                Consistency · <span className="max-md:hidden">12 weeks</span>
+                <span className="md:hidden">6 weeks</span>
+              </p>
+              <div className="max-md:hidden">
+                <Heatmap cells={activityByDay(logs, today, 12)} today={today} />
+              </div>
+              <div className="md:hidden">
+                <Heatmap cells={activityByDay(logs, today, 6)} today={today} />
+              </div>
             </div>
           </div>
           <div className="space-y-1.5 rounded-[10px] border bg-card p-3 text-[12.5px] max-md:-mx-1 max-md:border-0 max-md:bg-transparent max-md:p-0">
             <p className="text-[12px] font-semibold max-md:hidden">Filter</p>
             <div className="flex flex-wrap gap-1.5 max-md:flex-nowrap max-md:overflow-x-auto max-md:px-1 max-md:pb-1 max-md:whitespace-nowrap">
-              <Link href={filterHref({ filter_project: "" })} className={cn("rounded-full border px-2.5 py-0.5", !projectFilter && "border-primary text-primary")}>
+              <Link
+                href={filterHref({ filter_project: "" })}
+                className={cn("rounded-full border px-2.5 py-0.5", !projectFilter && "border-primary text-primary")}
+              >
                 All projects
               </Link>
               {(projects.data ?? []).map((p) => (
-                <Link key={p.id} href={filterHref({ filter_project: p.id })} className={cn("max-w-full shrink-0 truncate rounded-full border px-2.5 py-0.5 max-md:max-w-52", projectFilter === p.id && "border-primary text-primary")}>
+                <Link
+                  key={p.id}
+                  href={filterHref({ filter_project: p.id })}
+                  className={cn(
+                    "max-w-full shrink-0 truncate rounded-full border px-2.5 py-0.5 max-md:max-w-52",
+                    projectFilter === p.id && "border-primary text-primary",
+                  )}
+                >
                   {p.title}
                 </Link>
               ))}
@@ -201,7 +240,11 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
                 ["problems", "Has problems"],
                 ["files", "Has files"],
               ].map(([key, label]) => (
-                <Link key={key} href={filterHref({ only: only === key ? "" : key })} className={cn("rounded-full border px-2.5 py-0.5", only === key && "border-primary text-primary")}>
+                <Link
+                  key={key}
+                  href={filterHref({ only: only === key ? "" : key })}
+                  className={cn("rounded-full border px-2.5 py-0.5", only === key && "border-primary text-primary")}
+                >
                   {label}
                 </Link>
               ))}

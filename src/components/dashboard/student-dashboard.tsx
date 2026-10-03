@@ -10,7 +10,10 @@ import { NextActionCard } from "@/components/dashboard/next-action-card";
 import { ConvertRemarkDialog } from "@/components/remarks/convert-remark-dialog";
 import { RemarkQuickActions } from "@/components/remarks/remark-thread";
 import { JoinProfessorCard } from "@/components/settings/join-professor";
-import { addDays, formatDay, formatMinutes, isoWeekday, isoWeekNumber, timeAgo, weekdayShort } from "@/lib/domain/dates";
+import { GettingStarted, type ChecklistItem } from "@/components/onboarding/checklist";
+import { ChapterTrigger, Tip } from "@/components/onboarding/tips";
+import { NotificationsTip } from "@/components/onboarding/tip-kinds";
+import { addDays, daysBetween, formatDay, formatMinutes, isoWeekday, isoWeekNumber, timeAgo, weekdayShort } from "@/lib/domain/dates";
 import { compareByDeadline } from "@/lib/domain/deadlines";
 import { remarksAwaiting, studentNextAction } from "@/lib/domain/next-action";
 import { percent, projectProgress } from "@/lib/domain/progress";
@@ -38,11 +41,16 @@ export function StudentDashboard({
   hasProfessor,
   aiEnabled,
   health,
+  checklist,
+  signals,
 }: {
   ws: Workspace;
   hasProfessor: boolean;
   aiEnabled: boolean;
   health: Record<string, Health>;
+  checklist: ChecklistItem[];
+  /** Time-of-day facts for the contextual tips. */
+  signals: { evening: boolean; reportDue: boolean; weekStart: string };
 }) {
   const { userId, today, profile } = ws;
   const projectTitle = new Map(ws.projects.map((p) => [p.id, p.title]));
@@ -125,10 +133,29 @@ export function StudentDashboard({
     </div>
   );
 
+  const accountAge = daysBetween(profile.created_at.slice(0, 10), today);
+  const tips = (
+    <>
+      {ws.myLogs.length === 0 && ws.projects.length > 0 && (
+        <Tip id="never-logged" kind="discovery" title="Log your daily progress here." cta={{ label: "Write today's log", href: "/log/new" }}>
+          Your first entry starts the record.
+        </Tip>
+      )}
+      {!hasProfessor && accountAge >= 3 && (
+        <Tip id="no-professor" kind="state" title="Working solo?" cta={{ label: "Link professor", href: "/settings" }}>
+          Link your professor so your deadlines have an owner and your work has a reviewer.
+        </Tip>
+      )}
+      <NotificationsTip />
+    </>
+  );
+
   if (ws.projects.length === 0) {
     return (
       <div className="space-y-6">
         {header}
+        <GettingStarted items={checklist} />
+        {tips}
         <section className="rounded-xl border bg-card">
           <EmptyState
             icon={FolderPlus}
@@ -153,7 +180,25 @@ export function StudentDashboard({
 
   return (
     <div className="space-y-4">
+      <ChapterTrigger tour="dashboard" />
       <div className="rf-rise max-md:hidden">{header}</div>
+      <GettingStarted items={checklist} />
+      {overdue.length > 0 && (
+        <Tip id="overdue" kind="state" tone="danger" title={`You have ${overdue.length} overdue task${overdue.length === 1 ? "" : "s"}.`} cta={{ label: "Review overdue", href: "/tasks?view=overdue" }}>
+          Review them now: finish them, or request an extension.
+        </Tip>
+      )}
+      {!loggedToday && ws.myLogs.length > 0 && signals.evening && (
+        <Tip id="no-log-today" kind="state" tone="warning" title="No log yet today." cta={{ label: "Write today's log", href: "/log/new" }}>
+          One minute now saves an awkward question later.
+        </Tip>
+      )}
+      {signals.reportDue && (
+        <Tip id="report-due" kind="state" title="This week's report is ready." cta={{ label: "Open report", href: `/reports/${signals.weekStart}` }}>
+          Add a note and submit it before Monday.
+        </Tip>
+      )}
+      {tips}
       <NextActionCard
         action={action}
         secondary={
@@ -176,7 +221,7 @@ export function StudentDashboard({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_344px] lg:items-start">
         <div className="rf-stagger contents lg:flex lg:flex-col lg:gap-4">
-          <Section icon={AlarmClock} title="Overdue" count={overdue.length} tone="danger" alert className="order-1 lg:order-none" action={overdue.length > 0 ? <span className="max-sm:hidden">Can&apos;t be snoozed</span> : undefined}>
+          <Section icon={AlarmClock} title="Overdue" count={overdue.length} tone="danger" alert tour="overdue" tourEmpty={overdue.length === 0} className="order-1 lg:order-none" action={overdue.length > 0 ? <span className="max-sm:hidden">Can&apos;t be snoozed</span> : undefined}>
             {overdue.length === 0 ? (
               <p className="px-4 py-5 text-center text-muted-foreground">Nothing overdue. Keep it that way.</p>
             ) : (
@@ -193,6 +238,8 @@ export function StudentDashboard({
             accent="deadline"
             title="Today's focus"
             count={dueToday.length + inProgress.length}
+            tour="focus"
+            tourEmpty={dueToday.length + inProgress.length === 0}
             className="order-3 lg:order-none"
             action={plannedMinutes > 0 ? <span className="max-sm:hidden">{formatMinutes(plannedMinutes)} estimated</span> : undefined}
           >
@@ -216,7 +263,7 @@ export function StudentDashboard({
             )}
           </Section>
 
-          <Section icon={CalendarDays} title="Next 7 days" count={upcomingTasks.length + upcomingMilestones.length} className="order-4 lg:order-none" action={<Link href="/calendar" className="hover:text-foreground">Calendar →</Link>}>
+          <Section icon={CalendarDays} title="Next 7 days" count={upcomingTasks.length + upcomingMilestones.length} tour="next7" tourEmpty={upcomingDays.length === 0} className="order-4 lg:order-none" action={<Link href="/calendar" className="hover:text-foreground">Calendar →</Link>}>
             {upcomingDays.length === 0 ? (
               <p className="px-4 py-5 text-center text-muted-foreground">No deadlines in the coming week.</p>
             ) : (
@@ -262,7 +309,7 @@ export function StudentDashboard({
         </div>
 
         <div className="rf-stagger contents lg:flex lg:flex-col lg:gap-4">
-          <Section icon={MessageSquareText} title="Professor feedback" count={feedback.length} tone="warning" className="order-2 lg:order-none">
+          <Section icon={MessageSquareText} title="Professor feedback" count={feedback.length} tone="warning" tour="feedback" tourEmpty={feedback.length === 0} className="order-2 lg:order-none">
             {feedback.length === 0 ? (
               <p className="px-4 py-5 text-center text-muted-foreground">No open requests from your professor.</p>
             ) : (
@@ -316,7 +363,7 @@ export function StudentDashboard({
             </Section>
           )}
 
-          <Section icon={FolderKanban} accent="success" title="Projects" count={ws.projects.length} className="order-6 max-md:hidden lg:order-none">
+          <Section icon={FolderKanban} accent="success" title="Projects" count={ws.projects.length} tour="projects" className="order-6 max-md:hidden lg:order-none">
             <div className="divide-y">
               {ws.projects.map((p) => {
                 const tasks = ws.tasks.filter((t) => t.project_id === p.id);
@@ -346,7 +393,7 @@ export function StudentDashboard({
             </div>
           </Section>
 
-          <Section icon={TrendingUp} accent="success" title="Progress" className="order-6 md:hidden" action={<span className="font-mono">{formatMinutes(weekMinutes)} this week</span>}>
+          <Section icon={TrendingUp} accent="success" title="Progress" tour="projects" className="order-6 md:hidden" action={<span className="font-mono">{formatMinutes(weekMinutes)} this week</span>}>
             <div className="divide-y">
               {ws.projects.map((p) => {
                 const progress = projectProgress(ws.tasks.filter((t) => t.project_id === p.id), ws.milestones.filter((m) => m.project_id === p.id));
@@ -368,7 +415,7 @@ export function StudentDashboard({
             </div>
           </Section>
 
-          <Section icon={BarChart3} title="This week" className="order-7 max-md:hidden lg:order-none" action={<span className="font-mono">{formatMinutes(weekMinutes)}</span>}>
+          <Section icon={BarChart3} title="This week" tour="this-week" className="order-7 max-md:hidden lg:order-none" action={<span className="font-mono">{formatMinutes(weekMinutes)}</span>}>
             <div className="grid gap-2 px-3.5 py-3">
               <div className="grid h-14 grid-cols-7 items-end gap-1" aria-hidden>
                 {week.map((d) => (

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "@/components/common/use-local-storage";
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { CircleHelp, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { HelpSheet, OPEN_HELP_EVENT } from "@/components/onboarding/help";
 import { cn } from "cn";
 import { Logo, LogoMark } from "@/components/brand";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -29,6 +30,7 @@ function NavLink({ item, pathname, count, collapsed }: { item: NavItem; pathname
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
+      data-tour={`nav-${item.href.slice(1)}`}
       className={cn(
         "group flex h-[30px] items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         active
@@ -99,7 +101,7 @@ export function Sidebar({ role, shell }: { role: UserRole; shell: ShellData }) {
           <Link href={PROJECTS_ITEM.href} className="text-[10.5px] font-semibold tracking-[0.08em] text-muted-foreground uppercase hover:text-foreground">
             Projects
           </Link>
-          <Link href="/projects?new=1" aria-label="New project" className="rounded p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground">
+          <Link href="/projects?new=1" aria-label="New project" data-tour="new-project" className="rounded p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground">
             <Plus className="size-3.5" />
           </Link>
         </div>
@@ -176,6 +178,15 @@ export function MobileNav({ role, shell }: { role: UserRole; shell: ShellData })
   const pathname = usePathname();
   const nav = navFor(role);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  useEffect(() => {
+    const onOpen = () => {
+      if (window.matchMedia("(max-width: 767px)").matches) setHelpOpen(true);
+    };
+    window.addEventListener(OPEN_HELP_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_HELP_EVENT, onOpen);
+  }, []);
   const slots: (NavItem | "log")[] =
     role === "student" ? [nav[0], nav[1], "log", nav[3]] : [nav[0], nav[1], PROJECTS_ITEM, nav[3]];
 
@@ -188,7 +199,7 @@ export function MobileNav({ role, shell }: { role: UserRole; shell: ShellData })
         if (slot === "log") {
           return (
             <Link key="log" href="/log/new" aria-label="Write today's log" className="flex flex-col items-center gap-1.5 pb-1.5 text-[10px] font-medium text-muted-foreground">
-              <span className="-mt-7 grid size-12 place-items-center rounded-full bg-primary bg-grad-primary text-primary-foreground shadow-[0_10px_22px_-6px_rgba(79,70,229,0.6)] ring-4 ring-background transition-transform duration-150 active:scale-95">
+              <span data-tour="log-button" className="-mt-7 grid size-12 place-items-center rounded-full bg-primary bg-grad-primary text-primary-foreground shadow-[0_10px_22px_-6px_rgba(79,70,229,0.6)] ring-4 ring-background transition-transform duration-150 active:scale-95">
                 <Plus className="size-6" />
               </span>
               Log
@@ -202,6 +213,7 @@ export function MobileNav({ role, shell }: { role: UserRole; shell: ShellData })
             key={slot.href}
             href={slot.href}
             aria-current={active ? "page" : undefined}
+            data-tour={`nav-${slot.href.slice(1)}`}
             className={cn("relative flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] transition-colors", active ? "font-semibold text-primary" : "text-muted-foreground")}
           >
             <span className={cn("grid h-7 w-12 place-items-center rounded-full transition-all duration-200", active ? "bg-primary/12 scale-100" : "scale-90")}>
@@ -218,7 +230,7 @@ export function MobileNav({ role, shell }: { role: UserRole; shell: ShellData })
       })}
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
         <DialogTrigger asChild>
-          <button type="button" className="flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground">
+          <button type="button" data-tour="more-button" className="flex h-14 flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground">
             <span className="grid h-7 w-12 scale-90 place-items-center rounded-full">
               <Menu className="size-5" aria-hidden />
             </span>
@@ -238,11 +250,22 @@ export function MobileNav({ role, shell }: { role: UserRole; shell: ShellData })
               <span className={cn("size-2 rounded-full", HEALTH[p.health].dot)} /> {p.title}
             </Link>
           ))}
-          <button type="button" onClick={() => void signOut()} className="mt-2 flex h-12 items-center gap-3 rounded-lg px-3 text-[15px] text-muted-foreground hover:bg-accent">
+          <button
+            type="button"
+            onClick={() => {
+              setMoreOpen(false);
+              setTimeout(() => setHelpOpen(true), 200);
+            }}
+            className="mt-2 flex h-12 items-center gap-3 rounded-lg px-3 text-[15px] hover:bg-accent"
+          >
+            <CircleHelp className="size-5 text-muted-foreground" /> Help &amp; tours
+          </button>
+          <button type="button" onClick={() => void signOut()} className="flex h-12 items-center gap-3 rounded-lg px-3 text-[15px] text-muted-foreground hover:bg-accent">
             <LogOut className="size-5" /> Sign out
           </button>
         </DialogContent>
       </Dialog>
+      <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} />
     </nav>
   );
 }

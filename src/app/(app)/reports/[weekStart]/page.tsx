@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Pill } from "@/components/common/ui-bits";
 import { PageCrumbs } from "@/components/layout/page-crumbs";
 import { ReportView } from "@/components/reports/report-view";
+import { ChapterTrigger } from "@/components/onboarding/tips";
 import { AcknowledgeButton, PrintButton, ReportEditor, ShareControls } from "@/components/reports/report-controls";
 import { requireSession } from "@/lib/auth";
 import { isAiEnabled } from "@/lib/ai/remark-to-tasks";
@@ -48,9 +49,7 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
     body = (
       <div className="rounded-xl border bg-card p-6 text-center shadow-[var(--shadow-card)]">
         <p className="font-medium">Nothing to report for Week {isoWeekNumber(weekStart)}</p>
-        <p className="mt-1 text-muted-foreground">
-          Your reports start in Week {isoWeekNumber(first!)}, the first week you used ResearchFlow.
-        </p>
+        <p className="mt-1 text-muted-foreground">Your reports start in Week {isoWeekNumber(first!)}, the first week you used ResearchFlow.</p>
         <Link href={nav(weekStartOf(today))} className="mt-4 inline-block font-medium text-primary underline-offset-4 hover:underline">
           Open this week&apos;s report
         </Link>
@@ -60,32 +59,64 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
     const live = await generateWeeklyReport(supabase, userId, weekStart, profile.timezone, today);
     body = (
       <div className="space-y-6">
-        <ReportView stats={live.stats} highlights={live.highlights} note={report?.student_note || undefined} studentName={studentProfile.full_name} supervisor={supervisor} />
-        <ReportEditor weekStart={weekStart} initialNote={report?.student_note ?? ""} isCurrentWeek={weekStart === weekStartOf(today)} aiEnabled={isAiEnabled()} />
+        <div data-tour="report-summary">
+          <ReportView
+            stats={live.stats}
+            highlights={live.highlights}
+            note={report?.student_note || undefined}
+            studentName={studentProfile.full_name}
+            supervisor={supervisor}
+          />
+        </div>
+        <ReportEditor
+          weekStart={weekStart}
+          initialNote={report?.student_note ?? ""}
+          isCurrentWeek={weekStart === weekStartOf(today)}
+          aiEnabled={isAiEnabled()}
+        />
       </div>
     );
   } else {
     const stats = report ? readStats(report.stats) : null;
     if (!report || !frozen || !stats) {
-      body = <p className="rounded-xl border bg-card p-6 text-center text-muted-foreground">{studentProfile.full_name} hasn&apos;t submitted a report for this week.</p>;
+      body = (
+        <p className="rounded-xl border bg-card p-6 text-center text-muted-foreground">
+          {studentProfile.full_name} hasn&apos;t submitted a report for this week.
+        </p>
+      );
     } else {
       const h = await headers();
       const origin = process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
       body = (
         <div className="space-y-6">
-          <ReportView stats={stats} highlights={report.highlights} note={report.student_note} studentName={studentProfile.full_name} supervisor={supervisor} />
+          <div data-tour="report-summary">
+            <ReportView
+              stats={stats}
+              highlights={report.highlights}
+              note={report.student_note}
+              studentName={studentProfile.full_name}
+              supervisor={supervisor}
+            />
+          </div>
           {own && <ShareControls reportId={report.id} enabled={report.share_enabled} token={report.share_token} origin={origin} />}
         </div>
       );
     }
   }
 
-  const status = !report ? "Not started" : report.acknowledged_at ? `Acknowledged ${timeAgo(report.acknowledged_at)}` : frozen ? `Submitted ${timeAgo(report.submitted_at!)}` : "Draft";
+  const status = !report
+    ? "Not started"
+    : report.acknowledged_at
+      ? `Acknowledged ${timeAgo(report.acknowledged_at)}`
+      : frozen
+        ? `Submitted ${timeAgo(report.submitted_at!)}`
+        : "Draft";
 
   const week = (w: string) => `Week ${isoWeekNumber(w)}`;
 
   return (
     <>
+      <ChapterTrigger tour="report" ready={!beforeStart && (own || frozen)} />
       <PageCrumbs items={[{ label: "Reports", href: "/reports" }, { label: `${week(weekStart)}${own ? "" : ` · ${studentProfile.full_name}`}` }]} />
       <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2.5 print:hidden">
         <nav className={cn("flex items-center gap-1 text-[13px]", beforeStart && "hidden")} aria-label="Weeks">
@@ -101,7 +132,7 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
             </Link>
           )}
         </nav>
-        <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground" data-tour="report-status">
           {report?.submitted_at && <Pill tone="info">Submitted {formatDay(report.submitted_at.slice(0, 10))}</Pill>}
           {report?.acknowledged_at ? (
             <Pill tone="success">Acknowledged {timeAgo(report.acknowledged_at)}</Pill>

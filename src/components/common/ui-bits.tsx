@@ -131,6 +131,8 @@ export function Section({
   alert,
   icon: Icon,
   accent,
+  tour,
+  tourEmpty,
 }: {
   title: React.ReactNode;
   count?: number;
@@ -145,6 +147,10 @@ export function Section({
   icon?: LucideIcon;
   /** The badge's colour; defaults to the tone, else indigo. */
   accent?: Accent;
+  /** Product-tour anchor (data-tour). */
+  tour?: string;
+  /** The section has nothing in it yet; the tour shows a preview instead. */
+  tourEmpty?: boolean;
 }) {
   const hot = alert && (count === undefined || count > 0);
   const badge = accent ?? tone ?? "primary";
@@ -152,6 +158,8 @@ export function Section({
   return (
     <section
       id={id}
+      data-tour={tour}
+      data-tour-empty={tourEmpty ? "true" : undefined}
       className={cn(
         "flex min-w-0 scroll-mt-20 flex-col overflow-hidden rounded-[10px] border bg-card shadow-[var(--shadow-card)] transition-shadow duration-200 hover:shadow-[var(--shadow-lift)]",
         hot && "border-danger/35",

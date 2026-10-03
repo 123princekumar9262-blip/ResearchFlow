@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { ComposerData } from "@/lib/data/log-composer";
 import { LogForm } from "./log-form";
+import { ChapterTrigger } from "@/components/onboarding/tips";
 
 /**
  * The log composer as a slide-over (a tall bottom sheet on phones), opened
@@ -31,6 +32,7 @@ export function LogSheet({
   return (
     <Dialog open onOpenChange={(open) => !open && router.back()}>
       <DialogContent side="right" className="gap-3">
+        <ChapterTrigger tour="log" ready={data.projects.length > 0} inDialog />
         <div className="pr-8">
           <DialogTitle className="text-[17px]">Today&apos;s log</DialogTitle>
           <DialogDescription className="text-xs">

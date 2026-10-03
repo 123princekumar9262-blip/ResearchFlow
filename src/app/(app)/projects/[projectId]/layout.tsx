@@ -54,7 +54,7 @@ export default async function ProjectLayout({ children, params }: LayoutProps<"/
   return (
     <div>
       <PageCrumbs items={[{ label: "Projects", href: "/projects" }, { label: project.title }]} />
-      <header className="mb-4 flex flex-wrap items-start gap-x-6 gap-y-3">
+      <header className="mb-4 flex flex-wrap items-start gap-x-6 gap-y-3" data-tour="project-header">
         <div className="min-w-0 flex-1">
           <h1 className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-lg leading-snug font-semibold tracking-tight sm:text-[21px]">
             <span className="min-w-0">{project.title}</span>

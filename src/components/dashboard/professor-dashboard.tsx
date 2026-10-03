@@ -7,6 +7,9 @@ import { EmptyState, Pill, ProgressBar, RowLink, Section, UserAvatar } from "@/c
 import { StatusIcon } from "@/components/common/status";
 import { NextActionCard } from "@/components/dashboard/next-action-card";
 import { JoinCodeCard } from "@/components/settings/join-code";
+import { GettingStarted, type ChecklistItem } from "@/components/onboarding/checklist";
+import { Tip } from "@/components/onboarding/tips";
+import { InviteTip, NotificationsTip } from "@/components/onboarding/tip-kinds";
 import { daysBetween, formatDay, formatMinutes, isoWeekNumber, timeAgo, weekStartOf } from "@/lib/domain/dates";
 import { professorNextAction } from "@/lib/domain/next-action";
 import { percent, projectProgress } from "@/lib/domain/progress";
@@ -20,7 +23,12 @@ export interface ProfessorExtras {
 
 const STALE_DAYS = 3;
 
-export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: ProfessorExtras }) {
+/** An ISO timestamp n days back, for "waiting more than n days". */
+function isoDaysAgo(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString();
+}
+
+export function ProfessorDashboard({ ws, extras, checklist }: { ws: Workspace; extras: ProfessorExtras; checklist: ChecklistItem[] }) {
   const { today, userId } = ws;
   const name = new Map(ws.members.map((m) => [m.user_id, m.full_name]));
   for (const s of extras.students) name.set(s.id, s.full_name);
@@ -83,10 +91,44 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
   const unlinked = extras.students.filter((s) => !rows.some((r) => r.studentId === s.id));
   const HEALTH_DOT = { late: "bg-danger", risk: "bg-warning", good: "bg-success" } as const;
 
+  const twoDaysAgo = isoDaysAgo(2);
+  const waitingLong = pendingReviews.filter((t) => t.submitted_at && t.submitted_at < twoDaysAgo).length;
+  const quietest = [...staleStudents].sort((a, b) => (b.daysSinceLog ?? 99) - (a.daysSinceLog ?? 99))[0];
+  const tips = (
+    <>
+      {extras.students.length === 0 && <InviteTip code={ws.profile.join_code ?? ""} />}
+      {waitingLong > 0 && (
+        <Tip
+          id="reviews-waiting"
+          kind="state"
+          tone="warning"
+          title={`${waitingLong} task${waitingLong === 1 ? " has" : "s have"} waited more than 2 days for your review.`}
+          cta={{ label: "Open queue", href: "/reviews" }}
+        >
+          Students can&apos;t move on until you decide.
+        </Tip>
+      )}
+      {quietest && (
+        <Tip
+          id="quiet-student"
+          kind="state"
+          tone="warning"
+          title={quietest.daysSinceLog === null ? `${quietest.name} hasn't logged yet.` : `${quietest.name} hasn't logged in ${quietest.daysSinceLog} days.`}
+          cta={{ label: `Open ${quietest.name.split(" ")[0]}`, href: `/students/${quietest.studentId}` }}
+        >
+          A short check-in now beats a surprise later.
+        </Tip>
+      )}
+      <NotificationsTip />
+    </>
+  );
+
   if (extras.students.length === 0 && myProjects.length === 0) {
     return (
       <div className="space-y-5">
         <h1 className="text-[22px] font-semibold tracking-tight">Your students</h1>
+        <GettingStarted items={checklist} />
+        {tips}
         <section className="rounded-xl border bg-card">
           <EmptyState icon={Users} title="No students yet">
             Share your join code. When a student enters it, they appear here and can add you to their projects, or you can create a project and add them.
@@ -125,9 +167,11 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
         </div>
       </div>
 
+      <GettingStarted items={checklist} />
+      {tips}
       <NextActionCard action={action} />
 
-      <Section icon={Users} title="Sorted by attention needed">
+      <Section icon={Users} title="Sorted by attention needed" tour="students">
         {rows.length === 0 ? (
           <p className="px-4 py-6 text-center text-muted-foreground">You aren&apos;t on any projects yet. Create one, or ask a student to add you to theirs.</p>
         ) : (
@@ -137,12 +181,16 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
               <table className="w-full min-w-[760px] text-left">
                 <thead className="bg-muted/50 text-[11px] font-semibold tracking-[0.05em] text-muted-foreground uppercase">
                   <tr className="border-b">
-                    <th className="w-8 py-2 pl-3.5" aria-label="Health" />
+                    <th className="w-8 py-2 pl-3.5" aria-label="Health" data-tour="health" />
                     <th className="py-2 pr-2">Student</th>
                     <th className="px-2 py-2">Project</th>
                     <th className="w-36 px-2 py-2">Progress</th>
-                    <th className="px-2 py-2">Last update</th>
-                    <th className="px-2 py-2">This week</th>
+                    <th className="px-2 py-2" data-tour="activity">
+                      Last update
+                    </th>
+                    <th className="px-2 py-2" data-tour="activity">
+                      This week
+                    </th>
                     <th className="px-2 py-2 text-right">Overdue</th>
                     <th className="px-2 py-2">Blockers</th>
                     <th className="py-2 pr-3.5 text-right">Review</th>
@@ -151,7 +199,7 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
                 <tbody className="divide-y">
                   {rows.map((r) => (
                     <tr key={r.studentId} className="h-12 hover:bg-accent/40">
-                      <td className="pl-3.5">
+                      <td className="pl-3.5" data-tour="health">
                         <span className={cn("block size-[7px] rounded-full", HEALTH_DOT[r.health])} />
                       </td>
                       <td className="pr-2">
@@ -178,11 +226,12 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
                           <span className="font-mono text-[11.5px] tabular">{percent(r.progress)}%</span>
                         </span>
                       </td>
-                      <td className={cn("px-2 text-xs whitespace-nowrap", r.stale && "text-warning")}>
+                      <td className={cn("px-2 text-xs whitespace-nowrap", r.stale && "text-warning")} data-tour="activity">
                         {r.lastActivity ? timeAgo(r.lastActivity) : "never"}
                         {r.stale && r.daysSinceLog !== null && <span className="block text-[11px]">no log {r.daysSinceLog}d</span>}
                       </td>
-                      <td className="px-2 font-mono text-xs tabular">{r.weekMinutes ? formatMinutes(r.weekMinutes) : <span className="text-muted-foreground">–</span>}</td>
+                      <td className="px-2 font-mono text-xs tabular" data-tour="activity">
+                        {r.weekMinutes ? formatMinutes(r.weekMinutes) : <span className="text-muted-foreground">–</span>}</td>
                       <td className={cn("px-2 text-right font-mono tabular", r.overdue > 0 ? "font-semibold text-danger" : "text-muted-foreground")}>{r.overdue || "–"}</td>
                       <td className="px-2 text-xs">
                         {r.blockers.length === 0 ? (
@@ -212,7 +261,7 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
               {rows.map((r) => (
                 <Link key={`${r.studentId}-m`} href={`/students/${r.studentId}`} className="grid gap-1.5 px-3.5 py-3">
                   <span className="flex items-center gap-2">
-                    <span className={cn("size-[7px] shrink-0 rounded-full", HEALTH_DOT[r.health])} />
+                    <span className={cn("size-[7px] shrink-0 rounded-full", HEALTH_DOT[r.health])} data-tour="health" />
                     <UserAvatar name={r.studentName} />
                     <b className="min-w-0 flex-1 truncate font-medium">{r.studentName}</b>
                     <span className="font-mono text-[11.5px] tabular text-muted-foreground">{percent(r.progress)}%</span>
@@ -223,7 +272,7 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
                       {r.project.title}
                       {r.more > 0 && ` +${r.more}`}
                     </span>
-                    <span className={cn("shrink-0", r.health === "late" ? "text-danger" : r.health === "risk" ? "text-warning" : "text-muted-foreground")}>
+                    <span className={cn("shrink-0", r.health === "late" ? "text-danger" : r.health === "risk" ? "text-warning" : "text-muted-foreground")} data-tour="activity">
                       {[
                         r.overdue && `${r.overdue} overdue`,
                         r.stale && (r.daysSinceLog === null ? "never logged" : `quiet ${r.daysSinceLog}d`),
@@ -242,7 +291,7 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
       </Section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Section icon={Inbox} title="Review queue" count={pendingReviews.length} tone="info" action={<Link href="/reviews" className="hover:text-foreground">Open queue →</Link>}>
+        <Section icon={Inbox} title="Review queue" count={pendingReviews.length} tone="info" tour="review-queue" tourEmpty={pendingReviews.length === 0} action={<Link href="/reviews" className="hover:text-foreground">Open queue →</Link>}>
           {pendingReviews.length === 0 ? (
             <p className="px-4 py-5 text-center text-muted-foreground">Nothing waiting for your review.</p>
           ) : (
@@ -263,7 +312,7 @@ export function ProfessorDashboard({ ws, extras }: { ws: Workspace; extras: Prof
           )}
         </Section>
 
-        <Section id="blockers" icon={OctagonAlert} title="Blockers that need you" count={needYou.length} tone="danger">
+        <Section id="blockers" icon={OctagonAlert} title="Blockers that need you" count={needYou.length} tone="danger" tour="blockers" tourEmpty={needYou.length === 0}>
           {blockers.length === 0 ? (
             <p className="px-4 py-5 text-center text-muted-foreground">No one is blocked.</p>
           ) : (

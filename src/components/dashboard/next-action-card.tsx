@@ -37,7 +37,7 @@ export function NextActionCard({ action, secondary }: { action: NextAction; seco
   }, [router, action.href]);
 
   return (
-    <section className={cn("grid grid-cols-1 items-center gap-x-4 gap-y-3 rounded-xl border p-3.5 shadow-[var(--shadow-lift)] sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:p-4 sm:px-[18px]", tone.box)}>
+    <section data-tour="next-action" className={cn("grid grid-cols-1 items-center gap-x-4 gap-y-3 rounded-xl border p-3.5 shadow-[var(--shadow-lift)] sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:p-4 sm:px-[18px]", tone.box)}>
       <span className={cn("grid size-10 place-items-center rounded-full shadow-[0_6px_14px_-6px_rgba(0,0,0,0.35)] max-sm:hidden", tone.dot)}>
         <Icon className="size-[18px]" aria-hidden />
       </span>

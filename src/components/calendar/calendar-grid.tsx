@@ -93,7 +93,7 @@ export function CalendarGrid({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
+    <div className="overflow-hidden rounded-xl border bg-card" data-tour="cal-grid">
       <div className="grid grid-cols-7 border-b bg-muted/50">
         {Array.from({ length: 7 }, (_, i) => (
           <div key={i} className="border-r px-2 py-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-muted-foreground uppercase last:border-r-0">
@@ -132,7 +132,7 @@ export function CalendarGrid({
                 ) : (
                   <span className={cn("font-mono text-[11.5px]", inMonth ? "text-foreground/80" : "text-muted-foreground/60")}>{Number(d.slice(8))}</span>
                 )}
-                {loggedSet.has(d) && <span className="ml-auto size-1.5 rounded-full bg-success" title="Progress logged" />}
+                {loggedSet.has(d) && <span className="ml-auto size-1.5 rounded-full bg-success" title="Progress logged" data-tour="cal-logged" />}
               </div>
               {list.slice(0, limit).map((item) => {
                 if (item.kind === "milestone") {
@@ -156,6 +156,7 @@ export function CalendarGrid({
                     <button
                       type="button"
                       draggable={item.draggable}
+                      data-tour={item.draggable && item.kind !== "professor" ? "cal-mine" : undefined}
                       onDragStart={(e) => {
                         e.dataTransfer.setData("text/calendar-item", `${item.kind}:${item.id}`);
                         e.dataTransfer.effectAllowed = "move";

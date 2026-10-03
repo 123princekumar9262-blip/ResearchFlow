@@ -19,6 +19,7 @@ export function JoinProfessorCard({ compact }: { compact?: boolean }) {
         e.preventDefault();
         run(() => joinProfessor({ code }), { onSuccess: () => setCode("") });
       }}
+      data-tour="join-professor"
       className={cn("flex flex-col gap-3 rounded-xl border border-dashed bg-card p-4 sm:flex-row sm:items-center", compact && "py-3")}
     >
       <Link2 className="hidden size-5 text-muted-foreground sm:block" aria-hidden />

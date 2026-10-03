@@ -97,13 +97,15 @@ export function RemarkItem({
   const kind = KIND_LABEL[r.kind];
 
   return (
-    <li id={`remark-${r.id}`} className={cn("scroll-mt-20 rounded-xl border bg-card target:ring-2 target:ring-primary/40", waiting && "border-warning/40")}>
+    <li id={`remark-${r.id}`} data-tour="remark" className={cn("scroll-mt-20 rounded-xl border bg-card target:ring-2 target:ring-primary/40", waiting && "border-warning/40")}>
       <div className="flex gap-3 p-3">
         <UserAvatar name={r.author_name} className="mt-0.5" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
             <span className="font-medium">{r.author_name}</span>
-            <span className={cn("rounded border px-1.5 py-px text-[11px]", kind.className)}>{kind.label}</span>
+            <span data-tour="remark-kind" className={cn("rounded border px-1.5 py-px text-[11px]", kind.className)}>
+              {kind.label}
+            </span>
             {r.source === "meeting" && (
               <span className="flex items-center gap-1 text-muted-foreground" title="Recorded by the student from a meeting">
                 <Users className="size-3" /> from a meeting
@@ -120,7 +122,11 @@ export function RemarkItem({
 
           {(r.converted.length > 0 || r.addressed_at || waiting) && (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              {waiting && <span className="rounded bg-warning/10 px-1.5 py-0.5 font-medium text-warning">Needs a response</span>}
+              {waiting && (
+                <span data-tour="needs-response" className="rounded bg-warning/10 px-1.5 py-0.5 font-medium text-warning">
+                  Needs a response
+                </span>
+              )}
               {r.addressed_at && (
                 <span className="flex items-center gap-1 text-success">
                   <CheckCircle2 className="size-3" /> Addressed{r.addressed_by_name ? ` by ${r.addressed_by_name}` : ""}
@@ -134,14 +140,16 @@ export function RemarkItem({
             </div>
           )}
 
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="mt-2 flex flex-wrap gap-1" data-tour="remark-actions">
             <Button size="xs" variant="ghost" onClick={() => setReplying((v) => !v)}>
               <CornerDownRight /> Reply
             </Button>
             {(r.kind === "change_request" || r.kind === "question") && (
               <>
                 {viewerRole === "student" && (waiting || r.converted.length > 0) && (
-                  <ConvertRemarkDialog remarkId={r.id} body={r.body} authorName={r.author_name} today={today} aiEnabled={aiEnabled} />
+                  <span data-tour="remark-convert" className="inline-flex">
+                    <ConvertRemarkDialog remarkId={r.id} body={r.body} authorName={r.author_name} today={today} aiEnabled={aiEnabled} />
+                  </span>
                 )}
                 <AddressedToggle remarkId={r.id} addressed={!!r.addressed_at} />
               </>
@@ -175,8 +183,10 @@ export function RemarkQuickActions({ remarkId, projectId, convert }: { remarkId:
   const [replying, setReplying] = useState(false);
   return (
     <>
-      <div className="flex flex-wrap gap-1">
-        {convert}
+      <div className="flex flex-wrap gap-1" data-tour="remark-actions">
+        <span data-tour="remark-convert" className="inline-flex">
+          {convert}
+        </span>
         <Button size="xs" variant="ghost" onClick={() => setReplying((v) => !v)} aria-expanded={replying}>
           <CornerDownRight /> Reply
         </Button>
@@ -283,7 +293,7 @@ export function RemarkComposer({ projectId, taskId, viewerRole }: { projectId: s
           </label>
         )}
         {kinds.length > 1 && (
-          <div className="inline-flex rounded-md border p-0.5" role="radiogroup" aria-label="Kind">
+          <div className="inline-flex rounded-md border p-0.5" role="radiogroup" aria-label="Kind" data-tour="remark-kinds">
             {kinds.map((k) => (
               <button
                 key={k}

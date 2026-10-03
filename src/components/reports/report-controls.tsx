@@ -30,7 +30,7 @@ export function ReportEditor({
   };
   return (
     <div className="space-y-3 rounded-xl border border-primary/25 bg-card p-4 shadow-[var(--shadow-card)] print:hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2" data-tour="report-note">
         <label htmlFor="report-note" className="text-[13px] font-medium">
           Note to your professor <span className="font-normal text-muted-foreground">(optional)</span>
         </label>
@@ -57,6 +57,7 @@ export function ReportEditor({
           {draft.pending && <Loader2 className="animate-spin" />} Save draft
         </Button>
         <Button
+          data-tour="report-submit"
           disabled={draft.pending || submit.pending}
           onClick={() => confirm("Submit this report? It can't be edited afterwards.") && submit.run(() => saveWeeklyReport({ weekStart, note, submit: true }))}
         >
@@ -71,7 +72,7 @@ export function ShareControls({ reportId, enabled, token, origin }: { reportId: 
   const { pending, run } = useServerAction();
   const url = `${origin}/r/${token}`;
   return (
-    <div className="space-y-2 rounded-xl border bg-card p-4 print:hidden">
+    <div className="space-y-2 rounded-xl border bg-card p-4 print:hidden" data-tour="report-share">
       <div className="flex items-center gap-3">
         <Link2 className="size-4 text-muted-foreground" />
         <div className="flex-1">
@@ -110,7 +111,7 @@ export function ShareControls({ reportId, enabled, token, origin }: { reportId: 
 export function AcknowledgeButton({ reportId }: { reportId: string }) {
   const { pending, run } = useServerAction();
   return (
-    <Button disabled={pending} onClick={() => run(() => acknowledgeReport({ reportId }))}>
+    <Button disabled={pending} onClick={() => run(() => acknowledgeReport({ reportId }))} data-tour="report-ack">
       {pending ? <Loader2 className="animate-spin" /> : <Check />} Acknowledge
     </Button>
   );
@@ -119,7 +120,7 @@ export function AcknowledgeButton({ reportId }: { reportId: string }) {
 /** The browser's print dialog, where "Save as PDF" produces the report alone (the app chrome is hidden in print). */
 export function PrintButton() {
   return (
-    <Button variant="outline" size="sm" onClick={() => window.print()}>
+    <Button variant="outline" size="sm" onClick={() => window.print()} data-tour="report-pdf">
       <Download /> Download PDF
     </Button>
   );

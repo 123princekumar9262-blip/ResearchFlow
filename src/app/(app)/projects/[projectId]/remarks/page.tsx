@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "cn";
 import { RemarkThread } from "@/components/remarks/remark-thread";
+import { ChapterTrigger } from "@/components/onboarding/tips";
 import { isAiEnabled } from "@/lib/ai/remark-to-tasks";
 import { getProjectBundle } from "@/lib/data/project";
 import { loadRemarkThreads } from "@/lib/data/remarks";
@@ -33,6 +34,7 @@ export default async function ProjectRemarksPage({ params, searchParams }: PageP
         </div>
         <p className="ml-auto text-xs text-muted-foreground">Newest first. Remarks on tasks also appear on the task.</p>
       </div>
+      <ChapterTrigger tour="feedback" ready={remarks.length > 0} />
       <RemarkThread remarks={remarks} projectId={projectId} viewerRole={b.myRole} today={b.today} aiEnabled={isAiEnabled()} showTaskLinks />
     </div>
   );
