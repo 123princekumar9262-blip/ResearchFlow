@@ -1,0 +1,303 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Semantic status colours: they carry meaning, never decoration. */
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-info: var(--info);
+  /* Time pressure only: due today, the today marker, countdowns. */
+  --color-deadline: var(--deadline);
+  /* The spec's surface ladder and secondary ink. */
+  --color-surface-2: var(--surface-2);
+  --color-sunken: var(--sunken);
+  --color-border-strong: var(--border-strong);
+  --color-fg-2: var(--fg-2);
+  --color-primary-2: var(--primary-2);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --radius: 0.5rem;
+  /* Tokens follow the ResearchFlow interface spec §1.1 exactly. */
+  --background: #fbfbfa;
+  --surface-2: #f6f6f4;
+  --sunken: #f2f2f0;
+  --border-strong: #d4d3cf;
+  --fg-2: #4a4a50;
+  /* The second stop of the primary gradient: the spec's indigo pair. */
+  --primary-2: #6e66fa;
+  --shadow-card: 0 1px 2px rgba(20, 20, 30, 0.04);
+  --shadow-lift: 0 1px 2px rgba(20, 20, 30, 0.05), 0 8px 24px rgba(20, 20, 30, 0.06);
+  --shadow-pop: 0 4px 12px rgba(20, 20, 30, 0.08), 0 16px 40px rgba(20, 20, 30, 0.12);
+  --foreground: #1c1c1e;
+  --card: #ffffff;
+  --card-foreground: #1c1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c1e;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f2f0;
+  --secondary-foreground: #1c1c1e;
+  --muted: #f2f2f0;
+  --muted-foreground: #6b6b72;
+  --accent: #f6f6f4;
+  --accent-foreground: #1c1c1e;
+  --destructive: #dc2626;
+  --border: #e7e6e3;
+  --input: #d4d3cf;
+  --ring: #4f46e5;
+
+  --danger: #dc2626;
+  --warning: #a16207;
+  --success: #15803d;
+  --info: #2563eb;
+  --deadline: #c2410c;
+
+  --chart-1: #4f46e5;
+  --chart-2: #2563eb;
+  --chart-3: #15803d;
+  --chart-4: #a16207;
+  --chart-5: #dc2626;
+  --sidebar: #f2f2f0;
+  --sidebar-foreground: #1c1c1e;
+  --sidebar-primary: #4f46e5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9e8e5;
+  --sidebar-accent-foreground: #1c1c1e;
+  --sidebar-border: #e7e6e3;
+  --sidebar-ring: #4f46e5;
+}
+
+.dark {
+  --background: #0e0e10;
+  --surface-2: #1b1b20;
+  --sunken: #121215;
+  --border-strong: #36363d;
+  --fg-2: #bdbdc5;
+  --primary-2: #9c96ff;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 4px 12px rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.5);
+  --foreground: #ededef;
+  --card: #16161a;
+  --card-foreground: #ededef;
+  --popover: #16161a;
+  --popover-foreground: #ededef;
+  --primary: #6e66fa;
+  --primary-foreground: #ffffff;
+  --secondary: #1b1b20;
+  --secondary-foreground: #ededef;
+  --muted: #1b1b20;
+  --muted-foreground: #8e8e97;
+  --accent: #1b1b20;
+  --accent-foreground: #ededef;
+  --destructive: #f87171;
+  --border: #26262b;
+  --input: #36363d;
+  --ring: #6e66fa;
+
+  --danger: #f87171;
+  --warning: #facc15;
+  --success: #4ade80;
+  --info: #60a5fa;
+  --deadline: #fb923c;
+
+  --chart-1: #7c74ff;
+  --chart-2: #60a5fa;
+  --chart-3: #4ade80;
+  --chart-4: #facc15;
+  --chart-5: #f87171;
+  --sidebar: #121215;
+  --sidebar-foreground: #ededef;
+  --sidebar-primary: #6e66fa;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f1f24;
+  --sidebar-accent-foreground: #ededef;
+  --sidebar-border: #232328;
+  --sidebar-ring: #7c74ff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    /* A soft indigo wash at the top of the canvas, so the page isn't flat grey. */
+    background-image: radial-gradient(1100px 420px at 15% -8%, color-mix(in srgb, var(--primary) 7%, transparent), transparent 70%),
+      radial-gradient(900px 380px at 100% -10%, color-mix(in srgb, var(--primary-2) 6%, transparent), transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+  /* Numbers that line up in columns. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  kbd {
+    @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-muted px-1 font-mono text-[10px] font-medium text-muted-foreground;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Phones have no keyboard shortcuts to hint at. */
+@media (max-width: 767px) {
+  kbd {
+    display: none !important;
+  }
+}
+
+/* ───────────── Gradient and motion, from the spec's palette ───────────── */
+
+/* The primary gradient: the spec's indigo pair, light to bright. */
+@utility bg-grad-primary {
+  background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
+}
+/* Tinted card washes: a state colour fading into the surface. */
+@utility bg-wash-warning {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--warning) 13%, var(--card)) 0%, var(--card) 72%);
+}
+@utility bg-wash-danger {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--danger) 11%, var(--card)) 0%, var(--card) 72%);
+}
+@utility bg-wash-info {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--info) 11%, var(--card)) 0%, var(--card) 72%);
+}
+@utility bg-wash-primary {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--primary) 11%, var(--card)) 0%, var(--card) 72%);
+}
+@utility bg-wash-success {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--success) 11%, var(--card)) 0%, var(--card) 72%);
+}
+
+@keyframes rf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rf-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes rf-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* Children rise into place one after another when a page opens. */
+@utility rf-stagger {
+  & > * {
+    animation: rf-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  & > *:nth-child(2) {
+    animation-delay: 50ms;
+  }
+  & > *:nth-child(3) {
+    animation-delay: 100ms;
+  }
+  & > *:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  & > *:nth-child(5) {
+    animation-delay: 200ms;
+  }
+  & > *:nth-child(6) {
+    animation-delay: 250ms;
+  }
+  & > *:nth-child(n + 7) {
+    animation-delay: 300ms;
+  }
+}
+@utility rf-rise {
+  animation: rf-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+/* Cards you can open lift a little under the pointer (spec elevation 1). */
+@utility rf-lift {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+  }
+}
+@utility rf-grow {
+  transform-origin: left;
+  animation: rf-grow 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@utility rf-shimmer {
+  background-image: linear-gradient(90deg, var(--muted) 0%, var(--surface-2) 40%, var(--muted) 80%);
+  background-size: 200% 100%;
+  animation: rf-shimmer 1.2s linear infinite;
+}

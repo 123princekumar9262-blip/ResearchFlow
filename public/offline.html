@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)">
+<title>Offline · ResearchFlow</title>
+<!-- Kept on the device by the service worker. Self-contained: no network needed to render it. -->
+<style>
+  :root { --bg: #fbfbfa; --fg: #1c1c1e; --muted: #6b6b72; --chip: #f2f2f0; --primary: #4f46e5; --on-primary: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0e0e10; --fg: #ededef; --muted: #8e8e97; --chip: #1b1b20; --primary: #6e66fa; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 24px; }
+  main { max-width: 340px; display: grid; justify-items: center; gap: 16px; text-align: center; }
+  .mark { width: 40px; height: 40px; border-radius: 10px; background: var(--primary); display: grid; place-items: center; }
+  .wifi { width: 48px; height: 48px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; color: var(--muted); }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  p { margin: 6px 0 0; color: var(--muted); }
+  button { height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--primary); color: var(--on-primary);
+    font: inherit; font-weight: 500; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <span class="mark" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 16.5 10 11l3.2 3.2L19 7.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="7.5" r="2" fill="#fff"/></svg>
+  </span>
+  <span class="wifi" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2-1.44"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/></svg>
+  </span>
+  <div>
+    <h1>You're offline</h1>
+    <p>ResearchFlow needs a connection to show your deadlines and logs, so nothing here is ever out of date. Reconnect and try again.</p>
+  </div>
+  <button type="button" onclick="location.reload()">Try again</button>
+</main>
+</body>
+</html>
