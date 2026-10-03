@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyBlocker } from "@/lib/notify/events";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { action, fail, ok, unwrap } from "@/lib/actions";
@@ -31,6 +32,7 @@ export async function raiseBlocker(input: z.input<typeof raiseSchema>) {
         .select("id")
         .single(),
     );
+    notifyBlocker(row.id, userId);
     refresh();
     return ok(row.id, d.needsProfessor ? "Blocker raised. Your professor will see it." : "Blocker raised");
   });

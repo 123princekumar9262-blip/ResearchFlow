@@ -5,7 +5,8 @@ import { EmptyState } from "@/components/common/ui-bits";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getProjectBundle } from "@/lib/data/project";
 import { addDays, addMonths, daysBetween, formatDay, formatMonth, monthStartOf } from "@/lib/domain/dates";
-import { STATUS_META } from "@/components/common/status";
+import { STATUS_META, StatusIcon } from "@/components/common/status";
+import { DeadlineChip } from "@/components/common/deadline-chip";
 import type { Task } from "@/types/database";
 
 export default async function ProjectTimelinePage({ params }: PageProps<"/projects/[projectId]/timeline">) {
@@ -80,7 +81,53 @@ export default async function ProjectTimelinePage({ params }: PageProps<"/projec
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      {/* Phones: one card per milestone, with its date range as a bar (spec §6.2). */}
+      <div className="rf-stagger space-y-3 md:hidden">
+        {rows.map((r) => {
+          const overdue = r.to && r.to < today && !r.done;
+          const doneCount = r.tasks.filter((t) => t.status === "done").length;
+          const elapsed = r.to ? Math.min(1, Math.max(0, daysBetween(r.from, today) / Math.max(1, daysBetween(r.from, r.to)))) : 0;
+          return (
+            <section key={r.key} className="overflow-hidden rounded-[10px] border bg-card shadow-[var(--shadow-card)]">
+              <div className="flex items-start gap-2 px-3.5 pt-3">
+                {r.key !== "none" && <span className={cn("mt-0.5", r.done ? "text-success" : overdue ? "text-danger" : "text-primary")}>◆</span>}
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{r.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {doneCount}/{r.tasks.length} done{r.to ? ` · ${formatDay(r.from)} → ${formatDay(r.to)}` : ""}
+                  </p>
+                </div>
+                {r.to && <DeadlineChip date={r.to} today={today} kind="milestone" status={r.done ? "done" : undefined} />}
+              </div>
+              {r.to && (
+                <div className="px-3.5 pt-2.5">
+                  <div className={cn("relative h-2 overflow-hidden rounded-full", r.done ? "bg-success/15" : overdue ? "bg-danger/12" : "bg-primary/12")}>
+                    <div
+                      className={cn("rf-grow absolute inset-y-0 left-0 rounded-full", r.done ? "bg-success" : overdue ? "bg-danger" : "bg-grad-primary")}
+                      style={{ width: `${(r.done ? 1 : elapsed) * 100}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[10.5px] text-muted-foreground">{r.done ? "Complete" : overdue ? "Past its due date" : `${Math.round(elapsed * 100)}% of the time used`}</p>
+                </div>
+              )}
+              <ul className="mt-2 divide-y border-t">
+                {r.tasks.slice(0, 6).map((t) => (
+                  <li key={t.id}>
+                    <Link href={`/tasks/${t.id}`} className="flex min-h-10 items-center gap-2 px-3.5 py-2 text-[13px]">
+                      <StatusIcon status={t.status} />
+                      <span className={cn("min-w-0 flex-1 truncate", t.status === "done" && "text-muted-foreground line-through")}>{t.title}</span>
+                      {t.effective_deadline && <DeadlineChip date={t.effective_deadline} today={today} kind={t.professor_deadline === t.effective_deadline ? "professor" : "personal"} status={t.status} />}
+                    </Link>
+                  </li>
+                ))}
+                {r.tasks.length > 6 && <li className="px-3.5 py-2 text-xs text-muted-foreground">+{r.tasks.length - 6} more on the Tasks tab</li>}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border bg-card max-md:hidden">
         <div className="min-w-[760px]">
           <div className="grid grid-cols-[12rem_1fr] border-b text-xs text-muted-foreground">
             <div className="px-4 py-2">Milestone</div>
@@ -128,7 +175,7 @@ export default async function ProjectTimelinePage({ params }: PageProps<"/projec
           </div>
         </div>
       </div>
-      <p className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+      <p className="flex flex-wrap gap-4 text-xs text-muted-foreground max-md:hidden">
         <span>◆ outlined: professor deadline · grey: personal deadline · red: overdue · green: done</span>
         {project.target_end_date && <span>Dashed line: target end {formatDay(project.target_end_date)}</span>}
       </p>

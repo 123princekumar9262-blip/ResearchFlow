@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 import { isSupabaseConfigured, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./env";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password", "/auth", "/r/", "/setup", "/icon", "/apple-icon", "/pwa-icon", "/manifest.webmanifest", "/sw.js", "/offline", "/screenshots/"];
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password", "/auth", "/r/", "/setup", "/icon", "/apple-icon", "/pwa-icon", "/manifest.webmanifest", "/sw.js", "/api/cron/", "/offline", "/screenshots/"];
 
 function isPublic(pathname: string): boolean {
   return pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));

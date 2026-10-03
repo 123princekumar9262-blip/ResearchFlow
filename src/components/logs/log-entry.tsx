@@ -3,21 +3,31 @@ import { AlertCircle, ArrowRight, CheckCircle2, Clock } from "lucide-react";
 import { UserAvatar } from "@/components/common/ui-bits";
 import { AttachmentList, type AttachmentView } from "@/components/files/attachment-list";
 import { StatusIcon } from "@/components/common/status";
+import { LogComments } from "./log-comments";
 import { dateIn, daysBetween, formatMinutes } from "@/lib/domain/dates";
 import type { ProgressLog, TaskStatus } from "@/types/database";
+
+export interface LogComment {
+  id: string;
+  body: string;
+  created_at: string;
+  authorName: string;
+  authorRole: string;
+}
 
 export type LogView = ProgressLog & {
   authorName: string;
   projectTitle?: string;
   tasks: { id: string; title: string; status: TaskStatus }[];
   attachments: AttachmentView[];
+  comments: LogComment[];
 };
 
 /** One day's entry. Marks honestly when it was written after the day it describes. */
 export function LogEntry({ log, timeZone, showAuthor }: { log: LogView; timeZone: string; showAuthor?: boolean }) {
   const lateBy = daysBetween(log.log_date, dateIn(log.created_at, timeZone));
   return (
-    <article className="rounded-xl border bg-card p-4">
+    <article id={`log-${log.id}`} className="scroll-mt-20 rounded-xl border bg-card p-4 shadow-[var(--shadow-card)] transition-shadow duration-200 target:ring-2 target:ring-primary/40 hover:shadow-[var(--shadow-lift)]">
       <header className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         {showAuthor && (
           <span className="flex items-center gap-1.5 font-medium text-foreground">
@@ -71,6 +81,7 @@ export function LogEntry({ log, timeZone, showAuthor }: { log: LogView; timeZone
           <AttachmentList attachments={log.attachments} />
         </div>
       )}
+      <LogComments logId={log.id} projectId={log.project_id} comments={log.comments} />
     </article>
   );
 }

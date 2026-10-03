@@ -4,10 +4,13 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { action, fail, ok, unwrap } from "@/lib/actions";
 import { id, optionalDate, optionalId, taskPriority, title } from "@/lib/validation";
+import { notifyRemark } from "@/lib/notify/events";
 
 const postSchema = z.object({
   projectId: id,
   taskId: optionalId,
+  /** A comment on one day's log entry. */
+  progressLogId: optionalId,
   parentId: optionalId,
   body: z.string().trim().min(1, "Write something first.").max(5000),
   kind: z.enum(["comment", "change_request", "question", "approval"]).default("comment"),
@@ -24,6 +27,7 @@ export async function postRemark(input: z.input<typeof postSchema>) {
         .insert({
           project_id: d.projectId,
           task_id: d.taskId,
+          progress_log_id: d.progressLogId,
           parent_id: d.parentId,
           author_id: userId,
           body: d.body,
@@ -36,8 +40,9 @@ export async function postRemark(input: z.input<typeof postSchema>) {
     if (d.parentId && d.addressParent) {
       unwrap(await supabase.from("remarks").update({ addressed_at: new Date().toISOString() }).eq("id", d.parentId));
     }
+    notifyRemark(row.id, userId);
     refresh();
-    return ok(row.id, d.parentId ? "Reply posted" : "Remark posted");
+    return ok(row.id, d.parentId ? "Reply posted" : d.progressLogId ? "Comment posted" : "Remark posted");
   });
 }
 

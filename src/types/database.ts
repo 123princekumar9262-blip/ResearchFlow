@@ -23,6 +23,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"];
           join_code: string | null;
           timezone: string;
+          digest_email: boolean;
           created_at: string;
         };
         Insert: {
@@ -36,6 +37,7 @@ export type Database = {
         Update: {
           full_name?: string;
           timezone?: string;
+          digest_email?: boolean;
         };
         Relationships: [];
       };
@@ -267,6 +269,7 @@ export type Database = {
           id: string;
           project_id: string;
           task_id: string | null;
+          progress_log_id: string | null;
           parent_id: string | null;
           author_id: string;
           kind: Database["public"]["Enums"]["remark_kind"];
@@ -280,6 +283,7 @@ export type Database = {
           id?: string;
           project_id: string;
           task_id?: string | null;
+          progress_log_id?: string | null;
           parent_id?: string | null;
           author_id: string;
           kind?: Database["public"]["Enums"]["remark_kind"];
@@ -290,6 +294,7 @@ export type Database = {
         Relationships: [
           Rel<"remarks_project_id_fkey", "project_id", "projects">,
           Rel<"remarks_task_id_fkey", "task_id", "tasks">,
+          Rel<"remarks_progress_log_id_fkey", "progress_log_id", "progress_logs">,
           Rel<"remarks_parent_id_fkey", "parent_id", "remarks">,
           Rel<"remarks_author_id_fkey", "author_id", "profiles">,
           Rel<"remarks_addressed_by_fkey", "addressed_by", "profiles">,
@@ -448,6 +453,27 @@ export type Database = {
           Rel<"weekly_reports_student_id_fkey", "student_id", "profiles">,
           Rel<"weekly_reports_acknowledged_by_fkey", "acknowledged_by", "profiles">,
         ];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string;
+        };
+        Update: { user_agent?: string };
+        Relationships: [Rel<"push_subscriptions_user_id_fkey", "user_id", "profiles">];
       };
       extension_requests: {
         Row: {

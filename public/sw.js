@@ -8,7 +8,7 @@
 // Registered as /sw.js?dev=1 during development, where build files do change,
 // so nothing but the offline page is cached there.
 
-const VERSION = "rf-v2";
+const VERSION = "rf-v3";
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
@@ -61,4 +61,39 @@ self.addEventListener("fetch", (event) => {
     );
   }
   // Everything else (data, server actions, files) goes straight to the network.
+});
+
+// ───────────── Notifications ─────────────
+// The server sends { title, body, url, tag }. Same-tag notifications replace
+// each other, so a thread doesn't stack up on the lock screen.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "ResearchFlow", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "ResearchFlow", {
+      body: data.body || "",
+      icon: "/pwa-icon/192?purpose=any",
+      badge: "/pwa-icon/192",
+      tag: data.tag,
+      renotify: Boolean(data.tag),
+      data: { url: data.url || "/dashboard" },
+    }),
+  );
+});
+
+// Tapping a notification focuses an open ResearchFlow window (or opens one) on its page.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/dashboard", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+      if (open) return open.navigate(target).then((w) => (w || open).focus());
+      return self.clients.openWindow(target);
+    }),
+  );
 });

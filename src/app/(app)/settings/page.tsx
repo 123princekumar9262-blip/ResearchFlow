@@ -1,9 +1,11 @@
-import { Palette, Smartphone, Sparkles, UserRound } from "lucide-react";
+import { BellRing, Palette, Smartphone, Sparkles, UserRound } from "lucide-react";
 import { PageHeader, Section } from "@/components/common/ui-bits";
 import { JoinCodeCard } from "@/components/settings/join-code";
 import { JoinProfessorCard } from "@/components/settings/join-professor";
 import { LinkedPeople, ProfileForm, ThemePicker } from "@/components/settings/settings-forms";
 import { InstallCard } from "@/components/pwa/install";
+import { NotificationsCard } from "@/components/settings/notifications-card";
+import { isEmailConfigured } from "@/lib/notify/email";
 import { requireSession } from "@/lib/auth";
 import { isAiEnabled } from "@/lib/ai/remark-to-tasks";
 
@@ -31,6 +33,9 @@ export default async function SettingsPage() {
         </Section>
         <Section icon={Palette} title="Appearance">
           <ThemePicker />
+        </Section>
+        <Section icon={BellRing} title="Notifications">
+          <NotificationsCard digestEmail={profile.digest_email ?? true} emailReady={isEmailConfigured()} />
         </Section>
         <Section icon={Smartphone} accent="success" title="App">
           <InstallCard />

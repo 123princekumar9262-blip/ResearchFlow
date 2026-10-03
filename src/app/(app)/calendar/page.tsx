@@ -4,7 +4,9 @@ import { StatusIcon } from "@/components/common/status";
 import { MonthNav } from "@/components/calendar/month-nav";
 import { CalendarGrid, type CalendarItem } from "@/components/calendar/calendar-grid";
 import { getWorkspace } from "@/lib/data/workspace";
-import { addDays, addMonths, eachDay, formatDay, formatMonth, formatMonthLong, monthStartOf, weekStartOf } from "@/lib/domain/dates";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { addDays, addMonths, eachDay, formatDay, formatMonth, formatMonthLong, isoWeekNumber, isValidISODate, monthStartOf, weekStartOf } from "@/lib/domain/dates";
 
 export const metadata = { title: "Calendar" };
 
@@ -19,10 +21,12 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const month = typeof params.month === "string" && /^\d{4}-\d{2}$/.test(params.month) ? params.month : today.slice(0, 7);
   const colorBy = params.color === "status" ? "status" : "project";
   const hidden = typeof params.hide === "string" ? params.hide.split(",").filter(Boolean) : [];
-  const first = monthStartOf(`${month}-01`);
-  const gridStart = weekStartOf(first);
-  const last = addDays(addMonths(first, 1), -1);
-  const gridEnd = addDays(weekStartOf(last), 6);
+  const view = params.view === "week" ? "week" : "month";
+  const weekStart = typeof params.week === "string" && isValidISODate(params.week) ? weekStartOf(params.week) : weekStartOf(today);
+  const first = view === "week" ? weekStart : monthStartOf(`${month}-01`);
+  const gridStart = view === "week" ? weekStart : weekStartOf(first);
+  const last = view === "week" ? addDays(weekStart, 6) : addDays(addMonths(first, 1), -1);
+  const gridEnd = view === "week" ? last : addDays(weekStartOf(last), 6);
   const days = eachDay(gridStart, gridEnd);
 
   const color = new Map(ws.projects.map((p, i) => [p.id, PROJECT_COLORS[i % PROJECT_COLORS.length]]));
@@ -67,7 +71,12 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const prev = addMonths(first, -1).slice(0, 7);
   const next = addMonths(first, 1).slice(0, 7);
   const href = (patch: Record<string, string>) => {
-    const q = new URLSearchParams({ month, ...(colorBy === "status" && { color: "status" }), ...(hidden.length && { hide: hidden.join(",") }), ...patch });
+    const q = new URLSearchParams({
+      ...(view === "week" ? { view: "week", week: weekStart } : { month }),
+      ...(colorBy === "status" && { color: "status" }),
+      ...(hidden.length && { hide: hidden.join(",") }),
+      ...patch,
+    });
     for (const [k, v] of [...q.entries()]) if (!v) q.delete(k);
     return `/calendar?${q}`;
   };
@@ -75,8 +84,40 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
   return (
     <>
-      <div className="mb-4">
-        <MonthNav prev={prev} next={next} today={today.slice(0, 7)} label={formatMonthLong(first)} />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        {view === "month" ? (
+          <MonthNav prev={prev} next={next} today={today.slice(0, 7)} label={formatMonthLong(first)} />
+        ) : (
+          <div className="flex flex-wrap items-center gap-1">
+            <h1 className="mr-3 text-[22px] font-semibold tracking-tight">
+              Week {isoWeekNumber(weekStart)} <span className="text-base font-normal text-muted-foreground">· {formatDay(weekStart)} – {formatDay(addDays(weekStart, 6))}</span>
+            </h1>
+            <Button variant="outline" size="icon-sm" asChild>
+              <Link href={href({ week: addDays(weekStart, -7) })} aria-label="Previous week">
+                <ChevronLeft />
+              </Link>
+            </Button>
+            <Button variant="outline" size="icon-sm" asChild>
+              <Link href={href({ week: addDays(weekStart, 7) })} aria-label="Next week">
+                <ChevronRight />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={href({ week: weekStartOf(today) })}>Today</Link>
+            </Button>
+          </div>
+        )}
+        <span className="inline-flex rounded-md border p-0.5 text-xs max-md:hidden md:ml-auto">
+          {(["month", "week"] as const).map((v) => (
+            <Link
+              key={v}
+              href={v === "week" ? `/calendar?view=week&week=${view === "week" ? weekStart : weekStartOf(first <= today && today <= last ? today : first)}` : `/calendar?month=${(view === "week" ? weekStart : first).slice(0, 7)}`}
+              className={cn("rounded px-2.5 py-0.5 capitalize transition-colors", view === v ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground")}
+            >
+              {v}
+            </Link>
+          ))}
+        </span>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
@@ -106,7 +147,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </div>
 
       <div className="hidden md:block">
-        <CalendarGrid days={days} monthKey={month} today={today} items={items} logged={logged} colorBy={colorBy} hidden={hidden} />
+        <CalendarGrid days={days} monthKey={month} today={today} items={items} logged={logged} colorBy={colorBy} hidden={hidden} week={view === "week"} />
       </div>
 
       {/* Phones: an agenda of the month's deadlines. */}

@@ -1,23 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Download, Eye, Link2, Loader2, RefreshCw, Send } from "lucide-react";
+import { Check, Copy, Download, Eye, Link2, Loader2, RefreshCw, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useServerAction } from "@/components/common/use-server-action";
-import { acknowledgeReport, saveWeeklyReport, setReportSharing } from "@/server/actions/reports";
+import { acknowledgeReport, draftNoteWithAi, saveWeeklyReport, setReportSharing } from "@/server/actions/reports";
 
-export function ReportEditor({ weekStart, initialNote, isCurrentWeek }: { weekStart: string; initialNote: string; isCurrentWeek: boolean }) {
+export function ReportEditor({
+  weekStart,
+  initialNote,
+  isCurrentWeek,
+  aiEnabled = false,
+}: {
+  weekStart: string;
+  initialNote: string;
+  isCurrentWeek: boolean;
+  aiEnabled?: boolean;
+}) {
   const [note, setNote] = useState(initialNote);
   const draft = useServerAction();
   const submit = useServerAction();
+  const ai = useServerAction();
+  const writeWithAi = () => {
+    if (note.trim() && !confirm("Replace your note with an AI draft?")) return;
+    ai.run(() => draftNoteWithAi({ weekStart }), { onSuccess: (text) => typeof text === "string" && setNote(text) });
+  };
   return (
-    <div className="space-y-3 rounded-xl border border-primary/25 bg-card p-4 print:hidden">
-      <label htmlFor="report-note" className="text-[13px] font-medium">
-        Note to your professor <span className="font-normal text-muted-foreground">(optional)</span>
-      </label>
+    <div className="space-y-3 rounded-xl border border-primary/25 bg-card p-4 shadow-[var(--shadow-card)] print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label htmlFor="report-note" className="text-[13px] font-medium">
+          Note to your professor <span className="font-normal text-muted-foreground">(optional)</span>
+        </label>
+        {aiEnabled && (
+          <Button type="button" size="sm" variant="outline" disabled={ai.pending} onClick={writeWithAi}>
+            {ai.pending ? <Loader2 className="animate-spin" /> : <Sparkles className="text-primary" />} Draft with AI
+          </Button>
+        )}
+      </div>
       <Textarea
         id="report-note"
         value={note}

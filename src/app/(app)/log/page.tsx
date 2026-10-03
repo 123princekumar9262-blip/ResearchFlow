@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Clock, Flame, NotebookPen } from "lucide-react";
+import { Clock, Download, FileText, Flame, NotebookPen } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Stat } from "@/components/common/ui-bits";
@@ -207,6 +207,22 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
               ))}
             </div>
           </div>
+          {logs.length > 0 && (
+            <div className="flex gap-2 rounded-[10px] border bg-card p-3 text-[12.5px] shadow-[var(--shadow-card)]">
+              <span className="mr-auto self-center font-semibold">Export</span>
+              <Button size="xs" variant="outline" asChild>
+                {/* A download, not a page: plain anchor so the router doesn't try to render it. */}
+                <a href="/log/export" download>
+                  <Download /> CSV
+                </a>
+              </Button>
+              <Button size="xs" variant="outline" asChild>
+                <Link href="/log/print">
+                  <FileText /> PDF
+                </Link>
+              </Button>
+            </div>
+          )}
         </aside>
       </div>
     </div>

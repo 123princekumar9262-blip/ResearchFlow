@@ -4,6 +4,7 @@ import { Sidebar, MobileNav } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { InstallBanner } from "@/components/pwa/install";
+import { PeekKeys } from "@/components/tasks/task-peek";
 
 export default async function AppLayout({ children, modal }: LayoutProps<"/">) {
   const { profile, today } = await requireSession();
@@ -22,6 +23,7 @@ export default async function AppLayout({ children, modal }: LayoutProps<"/">) {
       <MobileNav role={profile.role} shell={shell} />
       {modal}
       <CommandPalette role={profile.role} projects={shell.projects} />
+      <PeekKeys />
     </div>
   );
 }

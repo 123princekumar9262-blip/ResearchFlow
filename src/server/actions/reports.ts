@@ -5,6 +5,8 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { action, fail, ok, unwrap } from "@/lib/actions";
 import { generateWeeklyReport } from "@/lib/data/reports";
+import { AiUnavailableError } from "@/lib/ai/remark-to-tasks";
+import { draftReportNote } from "@/lib/ai/report-note";
 import { isoWeekday, weekStartOf } from "@/lib/domain/dates";
 import { summarize } from "@/lib/domain/weekly-report";
 import { id, isoDate } from "@/lib/validation";
@@ -70,5 +72,28 @@ export async function setReportSharing(input: { reportId: string; enabled: boole
     if (rows.length === 0) return fail("You can't change sharing on this report.");
     refresh();
     return ok(rows[0].share_token, d.rotate ? "New link created. The old one stopped working." : d.enabled ? "Link sharing on" : "Link sharing off");
+  });
+}
+
+/** An AI draft of the note to the professor, from this week's report. Writes nothing. */
+export async function draftNoteWithAi(input: { weekStart: string }) {
+  return action(z.object({ weekStart: isoDate }), input, async (d, { supabase, userId, profile, today }) => {
+    if (profile.role !== "student") return fail("Only students write weekly reports.");
+    const [report, { data: supervisors }] = await Promise.all([
+      generateWeeklyReport(supabase, userId, d.weekStart, profile.timezone, today),
+      supabase.from("supervisions").select("professor:profiles!supervisions_professor_id_fkey(full_name)").eq("student_id", userId).limit(1),
+    ]);
+    try {
+      const note = await draftReportNote({
+        studentName: profile.full_name,
+        professorName: supervisors?.[0]?.professor?.full_name ?? null,
+        stats: report.stats,
+        highlights: report.highlights,
+      });
+      return ok(note, "Draft written. Edit it before you submit.");
+    } catch (error) {
+      if (error instanceof AiUnavailableError) return fail(error.message);
+      throw error;
+    }
   });
 }

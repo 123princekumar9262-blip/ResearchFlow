@@ -44,6 +44,7 @@ export function CalendarGrid({
   logged,
   colorBy,
   hidden,
+  week = false,
 }: {
   days: string[];
   monthKey: string;
@@ -52,7 +53,10 @@ export function CalendarGrid({
   logged: string[];
   colorBy: "project" | "status";
   hidden: string[];
+  /** One week: tall cells that show every deadline instead of the first four. */
+  week?: boolean;
 }) {
+  const limit = week ? Infinity : 4;
   const [peek, setPeek] = useState<{ item: Extract<CalendarItem, { kind: "professor" | "personal" }>; date: string } | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [moving, setMoving] = useState<Record<string, string>>({});
@@ -99,7 +103,7 @@ export function CalendarGrid({
       </div>
       <div className="grid grid-cols-7">
         {days.map((d) => {
-          const inMonth = d.slice(0, 7) === monthKey;
+          const inMonth = week || d.slice(0, 7) === monthKey;
           const list = visible(d);
           return (
             <div
@@ -115,7 +119,8 @@ export function CalendarGrid({
                 drop(d, e.dataTransfer.getData("text/calendar-item"));
               }}
               className={cn(
-                "relative min-h-28 space-y-[3px] border-r border-b p-1.5 transition-colors [&:nth-child(7n)]:border-r-0",
+                "relative space-y-[3px] border-r border-b p-1.5 transition-colors [&:nth-child(7n)]:border-r-0",
+                week ? "min-h-80" : "min-h-28",
                 !inMonth && "bg-muted/40",
                 d === today && "shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--deadline)_45%,transparent)]",
                 over === d && "bg-primary/[0.06]",
@@ -129,7 +134,7 @@ export function CalendarGrid({
                 )}
                 {loggedSet.has(d) && <span className="ml-auto size-1.5 rounded-full bg-success" title="Progress logged" />}
               </div>
-              {list.slice(0, 4).map((item) => {
+              {list.slice(0, limit).map((item) => {
                 if (item.kind === "milestone") {
                   return (
                     <Link
@@ -176,7 +181,7 @@ export function CalendarGrid({
                   </PopoverOnChip>
                 );
               })}
-              {list.length > 4 && <p className="px-1 text-[10px] text-muted-foreground">+{list.length - 4} more</p>}
+              {list.length > limit && <p className="px-1 text-[10px] text-muted-foreground">+{list.length - limit} more</p>}
             </div>
           );
         })}

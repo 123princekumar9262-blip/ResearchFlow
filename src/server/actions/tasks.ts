@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyReviewed, notifySubmitted } from "@/lib/notify/events";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { action, fail, ok, unwrap } from "@/lib/actions";
@@ -96,9 +97,10 @@ const STATUS_MESSAGES: Record<z.infer<typeof taskStatus>, string> = {
 };
 
 export async function setTaskStatus(input: { taskId: string; status: z.input<typeof taskStatus> }) {
-  return action(z.object({ taskId: id, status: taskStatus }), input, async (d, { supabase }) => {
+  return action(z.object({ taskId: id, status: taskStatus }), input, async (d, { supabase, userId }) => {
     const rows = unwrap(await supabase.from("tasks").update({ status: d.status }).eq("id", d.taskId).select("id"));
     if (rows.length === 0) return fail("You can't change this task.");
+    if (d.status === "in_review") notifySubmitted(d.taskId, userId);
     refresh();
     return ok(null, STATUS_MESSAGES[d.status]);
   });
@@ -137,8 +139,9 @@ export async function removeDependency(input: z.input<typeof depSchema>) {
 const reviewSchema = z.object({ taskId: id, approve: z.boolean(), comment: longText() });
 
 export async function reviewTask(input: z.input<typeof reviewSchema>) {
-  return action(reviewSchema, input, async (d, { supabase }) => {
+  return action(reviewSchema, input, async (d, { supabase, userId }) => {
     unwrap(await supabase.rpc("review_task", { p_task: d.taskId, p_approve: d.approve, p_comment: d.comment }));
+    notifyReviewed(d.taskId, d.approve, userId);
     refresh();
     return ok(null, d.approve ? "Approved" : "Changes requested");
   });

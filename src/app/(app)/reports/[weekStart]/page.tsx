@@ -8,6 +8,7 @@ import { PageCrumbs } from "@/components/layout/page-crumbs";
 import { ReportView } from "@/components/reports/report-view";
 import { AcknowledgeButton, PrintButton, ReportEditor, ShareControls } from "@/components/reports/report-controls";
 import { requireSession } from "@/lib/auth";
+import { isAiEnabled } from "@/lib/ai/remark-to-tasks";
 import { firstReportWeek, generateWeeklyReport, readStats } from "@/lib/data/reports";
 import { addDays, formatDay, isValidISODate, isoWeekNumber, isoWeekday, timeAgo, weekStartOf } from "@/lib/domain/dates";
 
@@ -60,7 +61,7 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
     body = (
       <div className="space-y-6">
         <ReportView stats={live.stats} highlights={live.highlights} note={report?.student_note || undefined} studentName={studentProfile.full_name} supervisor={supervisor} />
-        <ReportEditor weekStart={weekStart} initialNote={report?.student_note ?? ""} isCurrentWeek={weekStart === weekStartOf(today)} />
+        <ReportEditor weekStart={weekStart} initialNote={report?.student_note ?? ""} isCurrentWeek={weekStart === weekStartOf(today)} aiEnabled={isAiEnabled()} />
       </div>
     );
   } else {

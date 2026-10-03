@@ -640,6 +640,62 @@ describe("extension requests", () => {
   });
 });
 
+describe("comments on log entries", () => {
+  let log;
+
+  before(async () => {
+    log = (
+      await as(db, riya, (tx) =>
+        one(tx, "insert into progress_logs (project_id, author_id, log_date, completed_work) values ($1, $2, current_date - 1, 'sweep done') returning id", [project, riya]),
+      )
+    ).id;
+  });
+
+  it("lets the professor comment on a student's entry, and the student reply on the same entry", async () => {
+    const c = await as(db, prof, (tx) =>
+      one(tx, "insert into remarks (project_id, progress_log_id, author_id, kind, body) values ($1, $2, $3, 'comment', 'Seeds or split?') returning id", [project, log, prof]),
+    );
+    const reply = await as(db, riya, (tx) =>
+      one(tx, "insert into remarks (project_id, parent_id, author_id, kind, body) values ($1, $2, $3, 'comment', 'The split.') returning progress_log_id", [project, c.id, riya]),
+    );
+    assert.equal(reply.progress_log_id, log);
+  });
+
+  it("takes comments only, never a change request", async () => {
+    await expectError(
+      () => as(db, prof, (tx) => tx.query("insert into remarks (project_id, progress_log_id, author_id, kind, body) values ($1, $2, $3, 'change_request', 'redo')", [project, log, prof])),
+      /Log entries take comments/,
+    );
+  });
+
+  it("keeps a comment on its own project's log", async () => {
+    const other = (
+      await as(db, outsider, (tx) => one(tx, "select create_project('Elsewhere') as project_id"))
+    ).project_id;
+    await expectError(
+      () => as(db, outsider, (tx) => tx.query("insert into remarks (project_id, progress_log_id, author_id, kind, body) values ($1, $2, $3, 'comment', 'hi')", [other, log, outsider])),
+      /different project/,
+    );
+  });
+});
+
+describe("push subscriptions", () => {
+  it("are private to their owner", async () => {
+    await as(db, riya, (tx) => tx.query("insert into push_subscriptions (endpoint, p256dh, auth) values ('https://push.example/riya', 'k', 'a')"));
+    const mine = await as(db, riya, (tx) => rows(tx, "select endpoint from push_subscriptions"));
+    assert.deepEqual(mine.map((r) => r.endpoint), ["https://push.example/riya"]);
+    const theirs = await as(db, prof, (tx) => rows(tx, "select endpoint from push_subscriptions"));
+    assert.equal(theirs.length, 0);
+  });
+
+  it("can't be registered for someone else", async () => {
+    await expectError(
+      () => as(db, prof, (tx) => tx.query("insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, 'https://push.example/x', 'k', 'a')", [riya])),
+      /row-level security/,
+    );
+  });
+});
+
 describe("sanity", () => {
   it("leaves today's helper consistent with the database clock", async () => {
     const { d } = await one(db, "select current_date::text as d");

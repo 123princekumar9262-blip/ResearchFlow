@@ -19,7 +19,8 @@ export async function loadRemarkThreads(supabase: ServerSupabase, projectId: str
     supabase.from("tasks").select("id, title, status, source_remark_id").eq("project_id", projectId).not("source_remark_id", "is", null),
   ]);
 
-  const all = rows ?? [];
+  // Comments on log entries live with the log, not in the project's remark list.
+  const all = (rows ?? []).filter((r) => !(r as { progress_log_id?: string | null }).progress_log_id);
   return all
     .filter((r) => r.parent_id === null)
     .map((r) => ({

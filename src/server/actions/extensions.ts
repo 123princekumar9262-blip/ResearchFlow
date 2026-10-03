@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyExtension } from "@/lib/notify/events";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { action, fail, ok, unwrap } from "@/lib/actions";
@@ -16,15 +17,20 @@ const requestSchema = z.object({
 /** Ask the professor to move a deadline you can't move yourself. */
 export async function requestExtension(input: z.input<typeof requestSchema>) {
   return action(requestSchema, input, async (d, { supabase, userId }) => {
-    unwrap(
-      await supabase.from("extension_requests").insert({
-        project_id: d.projectId,
-        task_id: d.taskId,
-        requested_by: userId,
-        proposed_deadline: d.proposedDate,
-        reason: d.reason,
-      }),
+    const row = unwrap(
+      await supabase
+        .from("extension_requests")
+        .insert({
+          project_id: d.projectId,
+          task_id: d.taskId,
+          requested_by: userId,
+          proposed_deadline: d.proposedDate,
+          reason: d.reason,
+        })
+        .select("id")
+        .single(),
     );
+    notifyExtension(row.id, userId);
     refresh();
     return ok(null, `Extension to ${formatDay(d.proposedDate)} requested. Your professor will see it in their inbox.`);
   });
@@ -42,8 +48,9 @@ export async function withdrawExtension(input: { requestId: string }) {
 const respondSchema = z.object({ requestId: id, approve: z.boolean(), response: z.string().trim().max(2000).default("") });
 
 export async function respondExtension(input: z.input<typeof respondSchema>) {
-  return action(respondSchema, input, async (d, { supabase }) => {
+  return action(respondSchema, input, async (d, { supabase, userId }) => {
     unwrap(await supabase.rpc("respond_extension", { p_request: d.requestId, p_approve: d.approve, p_response: d.response }));
+    notifyExtension(d.requestId, userId);
     refresh();
     return ok(null, d.approve ? "Extension approved. The deadline moved." : "Extension declined");
   });
