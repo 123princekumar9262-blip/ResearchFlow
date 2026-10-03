@@ -43,8 +43,8 @@ export default async function SettingsPage() {
         <Section icon={Sparkles} title="AI assistance">
           <p className="p-4 text-muted-foreground">
             {isAiEnabled()
-              ? "On. You can split a professor's remark into several tasks with AI. Suggestions are drafts; nothing is created until you confirm."
-              : "Off. Set ANTHROPIC_API_KEY on the server to let ResearchFlow split remarks into tasks."}
+              ? "On. AI can split a professor's remark into tasks and draft your weekly report note. Everything it suggests is a draft until you confirm."
+              : "Off. Set GEMINI_API_KEY on the server to let ResearchFlow split remarks into tasks and draft report notes."}
           </p>
         </Section>
       </div>
