@@ -6,7 +6,8 @@ evidence, feedback that turns into tracked work, and a weekly report that writes
 itself.
 
 - Product, system and UX design (Phases 1–6 and 8): [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
-- Stack: Next.js 16 (App Router), React 19, Tailwind v4, shadcn/ui, Supabase (Postgres, Auth, Storage), Zod, Claude API (optional)
+- Stack: Next.js 16 (App Router), React 19, Tailwind v4, shadcn/ui, Supabase (Postgres, Auth, Storage), Zod, Gemini or Claude API (optional)
+- Live: https://researchflow-six.vercel.app
 
 ## What it enforces
 
@@ -50,8 +51,17 @@ Requires Node 20.9+.
    `researchflow-demo`). Development projects only: the secret key bypasses RLS.
 7. **Start:** `npm run dev` and open http://localhost:3000.
 
-To enable **AI remark splitting** (Phase 8.1), set `ANTHROPIC_API_KEY`. Without it,
-the feature is hidden and manual remark → task conversion still works.
+To enable the **AI features** (splitting a remark into tasks, drafting the weekly
+report note), set `GEMINI_API_KEY` (free tier works) or `ANTHROPIC_API_KEY`. Without
+either, the features are hidden and everything else still works.
+
+## Deploy
+
+The Vercel project is connected to this GitHub repository: every push to `main`
+deploys to production, and other branches get preview URLs. Server settings
+(Supabase secret key, push keys, `CRON_SECRET`, AI key) live in the Vercel project's
+environment variables; `.env.example` lists them all. `vercel.json` schedules the
+morning digest and evening nudge.
 
 ## Scripts
 
