@@ -2,7 +2,7 @@ import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { ApiError, GoogleGenAI } from "@google/genai";
+import { ApiError, GoogleGenAI, type GenerateContentConfig } from "@google/genai";
 import { z } from "zod";
 
 /**
@@ -27,12 +27,26 @@ export class AiUnavailableError extends Error {}
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
 
+// The free tier is sometimes overloaded; one retry on the lighter model usually gets through.
+const GEMINI_FALLBACK = "gemini-flash-lite-latest";
+
 let gemini: GoogleGenAI | undefined;
 let anthropic: Anthropic | undefined;
 
+async function geminiGenerate(contents: string, config: GenerateContentConfig) {
+  gemini ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  try {
+    return await gemini.models.generateContent({ model: GEMINI_MODEL, contents, config });
+  } catch (error) {
+    const busy = error instanceof ApiError && (error.status === 429 || error.status >= 500);
+    if (!busy || GEMINI_MODEL === GEMINI_FALLBACK) throw error;
+    return gemini.models.generateContent({ model: GEMINI_FALLBACK, contents, config });
+  }
+}
+
 function unavailable(error: unknown, what: string): never {
   const status = error instanceof ApiError ? error.status : error instanceof Anthropic.APIError ? error.status : undefined;
-  if (status === 429) throw new AiUnavailableError("The AI service is busy. Try again in a minute.");
+  if (status === 429 || status === 503) throw new AiUnavailableError("The AI service is busy. Try again in a minute.");
   if (status === 401 || status === 403) throw new AiUnavailableError("The AI service rejected this server's key.");
   if (error instanceof ApiError || error instanceof Anthropic.APIError) throw new AiUnavailableError(`The AI service couldn't ${what} right now.`);
   throw error;
@@ -44,12 +58,7 @@ export async function generateText(input: { system: string; prompt: string; maxT
   if (!which) throw new AiUnavailableError("AI features aren't configured on this server.");
   try {
     if (which === "gemini") {
-      gemini ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const res = await gemini.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: input.prompt,
-        config: { systemInstruction: input.system, maxOutputTokens: input.maxTokens },
-      });
+      const res = await geminiGenerate(input.prompt, { systemInstruction: input.system, maxOutputTokens: input.maxTokens });
       return res.text?.trim() || null;
     }
     anthropic ??= new Anthropic();
@@ -91,16 +100,11 @@ export async function generateJson<T extends z.ZodType>(input: {
   if (!which) throw new AiUnavailableError("AI features aren't configured on this server.");
   try {
     if (which === "gemini") {
-      gemini ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const res = await gemini.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: input.prompt,
-        config: {
-          systemInstruction: input.system,
-          maxOutputTokens: input.maxTokens,
-          responseMimeType: "application/json",
-          responseJsonSchema: jsonSchema(input.schema),
-        },
+      const res = await geminiGenerate(input.prompt, {
+        systemInstruction: input.system,
+        maxOutputTokens: input.maxTokens,
+        responseMimeType: "application/json",
+        responseJsonSchema: jsonSchema(input.schema),
       });
       if (!res.text) return null;
       let json: unknown;
