@@ -2,7 +2,10 @@ import "server-only";
 
 import { after } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { formatMeetingTime } from "@/lib/domain/meetings";
 import { pushToUsers, isPushConfigured } from "./push";
+
+const URGENT = { urgent: true };
 
 // Who hears about what (spec §4.4). Each function runs after the response has
 // been sent, looks up the people involved with the server's own client, and
@@ -85,11 +88,11 @@ export function notifyRemark(remarkId: string, actorId: string) {
       const { data: people } = await admin.from("profiles").select("id, role").in("id", [...recipients]);
       const students = (people ?? []).filter((p) => p.role === "student").map((p) => p.id);
       const professors = (people ?? []).filter((p) => p.role === "professor").map((p) => p.id);
-      await pushToUsers(students, { title, body: excerpt(r.body), url, tag });
-      await pushToUsers(professors, { title, body: excerpt(r.body), url: `/projects/${r.project_id}/logs#log-${r.progress_log_id}`, tag });
+      await pushToUsers(students, { title, body: excerpt(r.body), url, tag }, URGENT);
+      await pushToUsers(professors, { title, body: excerpt(r.body), url: `/projects/${r.project_id}/logs#log-${r.progress_log_id}`, tag }, URGENT);
       return;
     }
-    await pushToUsers([...recipients], { title, body: excerpt(r.body), url, tag });
+    await pushToUsers([...recipients], { title, body: excerpt(r.body), url, tag }, URGENT);
   });
 }
 
@@ -104,7 +107,7 @@ export function notifySubmitted(taskId: string, actorId: string) {
       body: task.title,
       url: `/reviews?task=${task.id}`,
       tag: `review-${task.id}`,
-    });
+    }, URGENT);
   });
 }
 
@@ -118,7 +121,7 @@ export function notifyReviewed(taskId: string, approved: boolean, actorId: strin
       body: task.title,
       url: `/tasks/${task.id}`,
       tag: `review-${task.id}`,
-    });
+    }, URGENT);
   });
 }
 
@@ -139,14 +142,14 @@ export function notifyExtension(requestId: string, actorId: string) {
         body: `${title} · to ${x.proposed_deadline}`,
         url: `/tasks/${x.task_id}`,
         tag: `extension-${x.id}`,
-      });
+      }, URGENT);
     } else if (x.requested_by !== actorId) {
       await pushToUsers([x.requested_by], {
         title: x.status === "approved" ? "Extension approved" : "Extension declined",
         body: title,
         url: `/tasks/${x.task_id}`,
         tag: `extension-${x.id}`,
-      });
+      }, URGENT);
     }
   });
 }
@@ -162,6 +165,53 @@ export function notifyBlocker(blockerId: string, actorId: string) {
       body: b.title,
       url: `/projects/${b.project_id}/blockers#blocker-${b.id}`,
       tag: `blocker-${b.id}`,
-    });
+    }, URGENT);
+  });
+}
+
+/** A task someone else put on your plate. */
+export function notifyAssigned(taskId: string, actorId: string) {
+  later(async (admin) => {
+    const { data: task } = await admin.from("tasks").select("id, title, assignee_id, professor_deadline").eq("id", taskId).maybeSingle();
+    if (!task?.assignee_id || task.assignee_id === actorId) return;
+    await pushToUsers(
+      [task.assignee_id],
+      {
+        title: `${shortName(await nameOf(admin, actorId))} gave you a task`,
+        body: task.professor_deadline ? `${task.title} · due ${task.professor_deadline}` : task.title,
+        url: `/tasks/${task.id}`,
+        tag: `task-${task.id}`,
+      },
+      URGENT,
+    );
+  });
+}
+
+export type MeetingEvent = "scheduled" | "moved" | "ended" | "cancelled";
+
+/**
+ * A meeting was booked, moved, finished or called off: the other person hears
+ * about it, with the time in their own time zone. Cancelled meetings are gone
+ * by the time this runs, so the caller passes what it knew.
+ */
+export function notifyMeeting(
+  event: MeetingEvent,
+  meeting: { id: string; professor_id: string; student_id: string; starts_at: string },
+  actorId: string,
+  actionItems = 0,
+) {
+  later(async (admin) => {
+    const otherId = actorId === meeting.professor_id ? meeting.student_id : meeting.professor_id;
+    const [{ data: other }, who] = await Promise.all([
+      admin.from("profiles").select("timezone").eq("id", otherId).maybeSingle(),
+      nameOf(admin, actorId).then(shortName),
+    ]);
+    const when = formatMeetingTime(meeting.starts_at, other?.timezone ?? "UTC");
+    const message =
+      event === "scheduled" ? { title: `${who} scheduled a meeting`, body: `${when}. Open it to see the agenda or add a topic.` }
+      : event === "moved" ? { title: `${who} moved your meeting`, body: `Now ${when}.` }
+      : event === "cancelled" ? { title: `${who} cancelled your meeting`, body: `It was ${when}.` }
+      : { title: "Meeting notes are ready", body: actionItems ? `${actionItems} action item${actionItems === 1 ? "" : "s"} from today's meeting.` : "Notes from today's meeting." };
+    await pushToUsers([otherId], { ...message, url: event === "cancelled" ? "/meetings" : `/meetings/${meeting.id}`, tag: `meeting-${meeting.id}` }, URGENT);
   });
 }

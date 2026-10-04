@@ -240,7 +240,7 @@ export function MobileNav({ role, shell }: { role: UserRole; shell: ShellData })
     role === "student" ? [nav[0], nav[1], "log" as const, calendarOrProjects] : [nav[0], nav[1], PROJECTS_ITEM, nav[3]]
   ).filter((s) => (s === "log" ? gate.shows(nav[2]) : gate.shows(s)));
   const inTabs = new Set(slots.map((s) => (s === "log" ? "/log" : s.href)));
-  const more = (role === "student" ? [PROJECTS_ITEM, nav[3], nav[4]] : [nav[2]]).filter((i) => gate.shows(i) && !inTabs.has(i.href));
+  const more = (role === "student" ? [PROJECTS_ITEM, nav[3], nav[4], nav[5]] : [nav[4], nav[2]]).filter((i) => gate.shows(i) && !inTabs.has(i.href));
 
   return (
     <nav

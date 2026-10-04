@@ -1,6 +1,6 @@
 "use server";
 
-import { notifyReviewed, notifySubmitted } from "@/lib/notify/events";
+import { notifyAssigned, notifyReviewed, notifySubmitted } from "@/lib/notify/events";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { action, fail, ok, unwrap } from "@/lib/actions";
@@ -48,6 +48,7 @@ export async function createTask(input: z.input<typeof createSchema>) {
         .select("id")
         .single(),
     );
+    if (d.assigneeId && d.assigneeId !== userId) notifyAssigned(row.id, userId);
     refresh();
     return ok(row.id, "Task created");
   });
@@ -68,7 +69,7 @@ const updateSchema = z.object({
 
 /** Partial update: only keys present in the input are written. */
 export async function updateTask(input: z.input<typeof updateSchema>) {
-  return action(updateSchema, input, async (d, { supabase }) => {
+  return action(updateSchema, input, async (d, { supabase, userId }) => {
     const patch: TaskUpdate = {};
     if (d.title !== undefined) patch.title = d.title;
     if (d.description !== undefined) patch.description = d.description;
@@ -83,6 +84,7 @@ export async function updateTask(input: z.input<typeof updateSchema>) {
 
     const rows = unwrap(await supabase.from("tasks").update(patch).eq("id", d.taskId).select("id"));
     if (rows.length === 0) return fail("You can't edit this task.");
+    if ("assigneeId" in input && d.assigneeId && d.assigneeId !== userId) notifyAssigned(d.taskId, userId);
     refresh();
     return ok(null, "Saved");
   });

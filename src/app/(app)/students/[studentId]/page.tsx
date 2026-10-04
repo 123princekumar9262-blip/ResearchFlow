@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, FolderKanban, ScrollText } from "lucide-react";
 import { PageHeader, ProgressBar, RowLink, Section, Stat, UserAvatar } from "@/components/common/ui-bits";
 import { WeeklyHoursChart } from "@/components/charts/weekly-hours";
+import { ScheduleMeetingDialog } from "@/components/meetings/schedule-dialog";
 import { Heatmap } from "@/components/logs/heatmap";
 import { LogEntry } from "@/components/logs/log-entry";
 import { requireSession } from "@/lib/auth";
@@ -60,6 +61,7 @@ export default async function StudentPage({ params }: PageProps<"/students/[stud
           </span>
         }
         description={quiet === null ? "No progress logged yet" : quiet === 0 ? "Logged progress today" : `Last log ${quiet} day${quiet === 1 ? "" : "s"} ago`}
+        actions={<ScheduleMeetingDialog role="professor" people={[{ id: student.id, name: student.full_name }]} defaultPersonId={student.id} />}
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">

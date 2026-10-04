@@ -8,7 +8,7 @@
 // Registered as /sw.js?dev=1 during development, where build files do change,
 // so nothing but the offline page is cached there.
 
-const VERSION = "rf-v3";
+const VERSION = "rf-v4";
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 const OFFLINE_URL = "/offline.html";
@@ -65,7 +65,9 @@ self.addEventListener("fetch", (event) => {
 
 // ───────────── Notifications ─────────────
 // The server sends { title, body, url, tag }. Same-tag notifications replace
-// each other, so a thread doesn't stack up on the lock screen.
+// each other, so a thread doesn't stack up on the lock screen, but still sound
+// and buzz again (renotify). The sound is the phone's own notification sound:
+// browsers don't let a website choose one.
 self.addEventListener("push", (event) => {
   let data = {};
   try {
@@ -80,6 +82,9 @@ self.addEventListener("push", (event) => {
       badge: "/pwa-icon/192",
       tag: data.tag,
       renotify: Boolean(data.tag),
+      silent: false,
+      vibrate: [180, 80, 180],
+      timestamp: Date.now(),
       data: { url: data.url || "/dashboard" },
     }),
   );

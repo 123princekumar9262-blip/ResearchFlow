@@ -146,6 +146,8 @@ export type Database = {
           requires_review: boolean;
           estimate_hours: number | null;
           source_remark_id: string | null;
+          /** The meeting this action item came from. Missing until migration 11 is applied. */
+          meeting_id?: string | null;
           position: number;
           submitted_at: string | null;
           completed_at: string | null;
@@ -167,6 +169,7 @@ export type Database = {
           requires_review?: boolean;
           estimate_hours?: number | null;
           source_remark_id?: string | null;
+          meeting_id?: string | null;
           position?: number;
         };
         Update: {
@@ -457,6 +460,43 @@ export type Database = {
           Rel<"weekly_reports_acknowledged_by_fkey", "acknowledged_by", "profiles">,
         ];
       };
+      meetings: {
+        Row: {
+          id: string;
+          professor_id: string;
+          student_id: string;
+          starts_at: string;
+          notes: string;
+          status: "scheduled" | "done";
+          ended_at: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          professor_id: string;
+          student_id: string;
+          starts_at: string;
+          notes?: string;
+          created_by?: string;
+        };
+        Update: { starts_at?: string; notes?: string; status?: "scheduled" | "done"; ended_at?: string | null };
+        Relationships: [
+          Rel<"meetings_professor_id_fkey", "professor_id", "profiles">,
+          Rel<"meetings_student_id_fkey", "student_id", "profiles">,
+          Rel<"meetings_created_by_fkey", "created_by", "profiles">,
+        ];
+      };
+      meeting_topics: {
+        Row: { id: string; meeting_id: string; author_id: string; body: string; done: boolean; created_at: string };
+        Insert: { id?: string; meeting_id: string; author_id?: string; body: string; done?: boolean };
+        Update: { body?: string; done?: boolean };
+        Relationships: [
+          Rel<"meeting_topics_meeting_id_fkey", "meeting_id", "meetings">,
+          Rel<"meeting_topics_author_id_fkey", "author_id", "profiles">,
+        ];
+      };
       ai_questions: {
         Row: { id: number; user_id: string; asked_at: string };
         Insert: { user_id?: string; asked_at?: string };
@@ -584,6 +624,8 @@ export type Blocker = Tables<"blockers">;
 export type Decision = Tables<"decisions">;
 export type WeeklyReport = Tables<"weekly_reports">;
 export type ExtensionRequest = Tables<"extension_requests">;
+export type Meeting = Tables<"meetings">;
+export type MeetingTopic = Tables<"meeting_topics">;
 
 export type UserRole = Enums<"user_role">;
 export type TaskStatus = Enums<"task_status">;

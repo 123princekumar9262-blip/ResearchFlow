@@ -1,6 +1,5 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,22 +59,6 @@ export function FirstMilestoneTip() {
     <Tip id="milestones-empty" kind="discovery" title="Add your first milestone." cta={{ label: "Add milestone", onClick: () => clickTourTarget("add-milestone") }}>
       Milestones are the checkpoints your professor tracks.
     </Tip>
-  );
-}
-
-const subscribe = () => () => {};
-function notificationsOff(): boolean {
-  const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  return standalone && "Notification" in window && Notification.permission !== "granted";
-}
-
-/** The installed app, a week in, with notifications still off. */
-export function NotificationsTip() {
-  const api = useOnboardingMaybe();
-  const off = useSyncExternalStore(subscribe, notificationsOff, () => false);
-  if (!api || !off || api.accountAge < 7) return null;
-  return (
-    <Tip id="notifications-off" kind="state" title="Turn on notifications so requests and reviews reach your phone." cta={{ label: "Turn on", href: "/settings#notifications" }} />
   );
 }
 

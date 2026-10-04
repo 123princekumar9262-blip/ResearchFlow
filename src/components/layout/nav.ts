@@ -1,4 +1,4 @@
-import { CalendarDays, FolderKanban, Inbox, ListChecks, NotebookPen, ScrollText, Settings, Sun, Users, type LucideIcon } from "lucide-react";
+import { CalendarDays, FolderKanban, Handshake, Inbox, ListChecks, NotebookPen, ScrollText, Settings, Sun, Users, type LucideIcon } from "lucide-react";
 import type { UserRole } from "@/types/database";
 import type { Feature } from "@/lib/onboarding/stage";
 
@@ -25,6 +25,7 @@ export function navFor(role: UserRole): NavItem[] {
       { href: "/reviews", label: "Review queue", short: "Reviews", icon: Inbox, chord: "v", count: "reviews", feature: "reviews" },
       { href: "/calendar", label: "Calendar", icon: CalendarDays, chord: "c", feature: "calendar" },
       { href: "/reports", label: "Reports", icon: ScrollText, chord: "r", count: "reports", feature: "reports" },
+      MEETINGS_ITEM,
     ];
   }
   return [
@@ -33,8 +34,12 @@ export function navFor(role: UserRole): NavItem[] {
     { href: "/log", label: "Progress log", short: "Log", icon: NotebookPen, chord: "l", feature: "log" },
     { href: "/calendar", label: "Calendar", icon: CalendarDays, chord: "c", feature: "calendar" },
     { href: "/reports", label: "Reports", icon: ScrollText, chord: "r", feature: "reports" },
+    MEETINGS_ITEM,
   ];
 }
+
+// Last in both lists, so the phone tab bar's positions stay the same.
+const MEETINGS_ITEM: NavItem = { href: "/meetings", label: "Meetings", icon: Handshake, chord: "m", feature: "meetings" };
 
 export const PROJECTS_ITEM: NavItem = { href: "/projects", label: "Projects", icon: FolderKanban, chord: "p", feature: "projects" };
 export const SETTINGS_ITEM: NavItem = { href: "/settings", label: "Settings", icon: Settings, chord: "s" };

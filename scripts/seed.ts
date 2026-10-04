@@ -527,6 +527,34 @@ const ext = await db.from("extension_requests").insert({
 });
 console.log(`✓ remarks, blockers, decisions${ext.error ? " (extension requests skipped: apply migration 20261004000006 first)" : ", an extension request"}`);
 
+// ───────────────────────────── meetings ─────────────────────────────
+// Last week's one-to-one with Riya (ended, with notes and three action items),
+// and two coming up. Skipped until migration 11 has created the table.
+
+const meetingRows = await db
+  .from("meetings")
+  .insert([
+    { professor_id: prof, student_id: riya, starts_at: at(-7, "16:00"), created_by: prof, created_at: at(-9, "10:00"),
+      notes: "Gate driver: overshoot target is under 20% at 400 V; Riya's layout gets 18%, good enough to move on.\nThermal: the small heatsink won't do full load. Try the larger one with a fan before changing the frequency.\nPaper: aim for ECCE if the efficiency curve is done by the end of the month, otherwise APEC.\nArjun needs a PV emulator slot; Prof. Mehta to ask the drives group." },
+    { professor_id: prof, student_id: riya, starts_at: at(1, "16:00"), created_by: prof, created_at: at(-1, "18:30") },
+    { professor_id: prof, student_id: arjun, starts_at: at(3, "11:30"), created_by: arjun, created_at: at(-1, "09:30") },
+  ])
+  .select("id");
+if (meetingRows.error) {
+  console.log("✓ meetings skipped (apply migration 20261009000011 first)");
+} else {
+  const [last, nextRiya] = meetingRows.data;
+  check("meeting done", await db.from("meetings").update({ status: "done" }).eq("id", last.id));
+  // The trigger stamps the real end time; put last week's back.
+  check("meeting ended at", await db.from("meetings").update({ ended_at: at(-7, "16:45") }).eq("id", last.id));
+  check("action items", await db.from("tasks").update({ meeting_id: last.id }).in("id", [task("heatsink"), task("scatter"), task("outline")]));
+  check("topics", await db.from("meeting_topics").insert([
+    { meeting_id: nextRiya.id, author_id: riya, body: "ECCE or APEC? The page limits change how much efficiency data fits.", created_at: at(-1, "20:10") },
+    { meeting_id: nextRiya.id, author_id: prof, body: "Show the double-pulse waveforms at 400 V.", created_at: at(-1, "18:35") },
+  ]));
+  console.log("✓ 3 meetings");
+}
+
 // ───────────────────────────── weekly reports ─────────────────────────────
 // Last week's reports are submitted (Riya's is acknowledged); this week's are
 // left to be generated live.

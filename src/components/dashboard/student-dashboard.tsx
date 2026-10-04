@@ -12,7 +12,6 @@ import { RemarkQuickActions } from "@/components/remarks/remark-thread";
 import { JoinProfessorCard } from "@/components/settings/join-professor";
 import { GettingStarted, type ChecklistItem } from "@/components/onboarding/checklist";
 import { ChapterTrigger, Tip } from "@/components/onboarding/tips";
-import { NotificationsTip } from "@/components/onboarding/tip-kinds";
 import { MobileSummary } from "@/components/dashboard/mobile-summary";
 import { LinkProfessorLater, MoreForToday } from "@/components/dashboard/disclosure-bits";
 import type { Disclosure } from "@/lib/onboarding/stage";
@@ -47,6 +46,7 @@ export function StudentDashboard({
   checklist,
   signals,
   ui,
+  top,
 }: {
   ws: Workspace;
   hasProfessor: boolean;
@@ -57,6 +57,8 @@ export function StudentDashboard({
   signals: { evening: boolean; reportDue: boolean; weekStart: string };
   /** Stage and unlocked features (calm redesign spec). */
   ui: Disclosure;
+  /** The next meeting and the notifications prompt, shown with the tips. */
+  top?: React.ReactNode;
 }) {
   const { userId, today, profile } = ws;
   const projectTitle = new Map(ws.projects.map((p) => [p.id, p.title]));
@@ -153,7 +155,7 @@ export function StudentDashboard({
           Link your professor so your deadlines have an owner and your work has a reviewer.
         </Tip>
       )}
-      <NotificationsTip />
+      {top}
     </>
   );
 

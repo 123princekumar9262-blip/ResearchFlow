@@ -8,6 +8,9 @@ import { needsWelcome, readOnboarding } from "@/lib/onboarding/state";
 import { StudentDashboard } from "@/components/dashboard/student-dashboard";
 import { ProfessorDashboard } from "@/components/dashboard/professor-dashboard";
 import type { ChecklistItem } from "@/components/onboarding/checklist";
+import { NextMeetingCard } from "@/components/meetings/next-meeting-card";
+import { PushPrompt } from "@/components/pwa/push-prompt";
+import { nextMeeting } from "@/lib/data/meetings";
 
 export const metadata = { title: "Dashboard" };
 
@@ -25,6 +28,13 @@ export default async function DashboardPage() {
 
   const { stage, all, has } = await getDisclosure();
   const ui = { stage, all, has };
+  const meeting = await nextMeeting();
+  const top = (
+    <>
+      {meeting && <NextMeetingCard meeting={meeting} timeZone={profile.timezone} />}
+      <PushPrompt role={profile.role} />
+    </>
+  );
   const firstProject = ws.projects[0]?.id;
   const projectHref = firstProject ? `/projects/${firstProject}` : "/projects?new=1";
 
@@ -53,6 +63,7 @@ export default async function DashboardPage() {
         ws={ws}
         checklist={checklist}
         ui={ui}
+        top={top}
         extras={{
           students: studentList,
           logs: logs.data ?? [],
@@ -85,6 +96,7 @@ export default async function DashboardPage() {
       health={health}
       checklist={checklist}
       ui={ui}
+      top={top}
       signals={{
         evening: hour >= 17,
         reportDue: isoWeekday(today) === 7 && hour >= 18 && !report.data?.submitted_at,

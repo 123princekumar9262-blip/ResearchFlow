@@ -1,87 +1,18 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
 import { BellRing, Loader2, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useServerAction } from "@/components/common/use-server-action";
-import { removePushSubscription, savePushSubscription, sendTestNotification, setDigestEmail } from "@/server/actions/notifications";
-
-type Support = "unknown" | "supported" | "install-first" | "unsupported";
-
-const noop = () => () => {};
-
-function detectSupport(): Support {
-  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  const capable = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-  if (ios && !standalone) return "install-first";
-  return capable ? "supported" : "unsupported";
-}
-
-function keyBytes(base64: string): Uint8Array<ArrayBuffer> {
-  const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(padded);
-  const out = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
+import { usePush } from "@/components/pwa/use-push";
+import { sendTestNotification, setDigestEmail } from "@/server/actions/notifications";
 
 /** Settings → Notifications: phone notifications for this device, and the morning email. */
 export function NotificationsCard({ digestEmail, emailReady }: { digestEmail: boolean; emailReady: boolean }) {
-  const support = useSyncExternalStore(noop, detectSupport, () => "unknown" as Support);
-  const [subscribed, setSubscribed] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { support, subscribed, busy, error, ready, turnOn, turnOff } = usePush();
   const test = useServerAction();
   const digest = useServerAction();
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-  useEffect(() => {
-    if (support !== "supported") return;
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => setSubscribed(Boolean(sub)))
-      .catch(() => setSubscribed(false));
-  }, [support]);
-
-  const turnOn = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setError("Notifications are blocked for this site. Allow them in your browser's site settings, then try again.");
-        return;
-      }
-      const reg = await navigator.serviceWorker.ready;
-      const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey!) }));
-      const json = sub.toJSON();
-      const result = await savePushSubscription({ endpoint: sub.endpoint, p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "", userAgent: navigator.userAgent.slice(0, 300) });
-      if (!result.ok) throw new Error(result.error);
-      setSubscribed(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't turn notifications on.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const turnOff = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        await removePushSubscription({ endpoint: sub.endpoint });
-        await sub.unsubscribe();
-      }
-      setSubscribed(false);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const publicKey = ready;
 
   return (
     <div className="divide-y">
@@ -98,7 +29,7 @@ export function NotificationsCard({ digestEmail, emailReady }: { digestEmail: bo
                 ? "This browser can't receive notifications. Use Chrome, Edge or Firefox, or the installed app."
                 : !publicKey
                   ? "Notifications aren't set up on the server yet."
-                  : "Professor feedback, reviews, extension decisions, and a morning and evening nudge. On this device only."}
+                  : "Pop-ups with sound for feedback, reviews, new tasks, meetings and extension decisions, plus a morning and evening nudge. On this device only."}
           </p>
           {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>

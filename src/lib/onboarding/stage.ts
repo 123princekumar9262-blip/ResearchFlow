@@ -8,7 +8,7 @@
 export type Stage = 1 | 2 | 3;
 
 /** Features that appear on their own trigger (spec Phase 03). */
-export const FEATURES = ["tasks", "log", "calendar", "reports", "chart", "logstats", "reviews", "projects"] as const;
+export const FEATURES = ["tasks", "log", "calendar", "reports", "chart", "logstats", "reviews", "projects", "meetings"] as const;
 export type Feature = (typeof FEATURES)[number];
 
 export interface Facts {
@@ -48,6 +48,8 @@ export function earned(f: Facts): Feature[] {
   if (f.logs > 0) out.push("chart");
   if (f.logs >= 3) out.push("logstats");
   if (f.role === "professor" && (f.submissions || f.students > 0)) out.push("reviews");
+  // Someone to meet: a professor with students, a student with a project.
+  if (f.role === "professor" ? f.students > 0 : f.projects > 0) out.push("meetings");
   return out;
 }
 
@@ -82,4 +84,5 @@ export const FEATURE_PATH: Partial<Record<Feature, string>> = {
   tasks: "/tasks",
   log: "/log",
   reviews: "/reviews",
+  meetings: "/meetings",
 };

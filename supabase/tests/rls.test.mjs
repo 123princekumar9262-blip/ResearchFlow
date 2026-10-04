@@ -754,6 +754,62 @@ describe("AI question allowance", () => {
   });
 });
 
+describe("meetings", () => {
+  let meeting;
+  const soon = () => new Date(Date.now() + 86_400_000).toISOString();
+
+  it("can be booked by either side of a supervision, and only by them", async () => {
+    meeting = (await as(db, prof, (tx) => one(tx, "insert into meetings (professor_id, student_id, starts_at) values ($1, $2, $3) returning id", [prof, riya, soon()]))).id;
+    const byStudent = await as(db, arjun, (tx) => one(tx, "insert into meetings (professor_id, student_id, starts_at) values ($1, $2, $3) returning id", [prof, arjun, soon()]));
+    assert.ok(byStudent.id);
+    // "Eve Outsider" joined this professor earlier in the suite; a stranger hasn't.
+    const stranger = await signUp(db, { name: "Sam Stranger", role: "student" });
+    await expectError(() => as(db, stranger, (tx) => tx.query("insert into meetings (professor_id, student_id, starts_at) values ($1, $2, $3)", [prof, stranger, soon()])), /row-level security/);
+    // Booking for two other people.
+    await expectError(() => as(db, riya, (tx) => tx.query("insert into meetings (professor_id, student_id, starts_at) values ($1, $2, $3)", [prof, arjun, soon()])), /row-level security/);
+  });
+
+  it("is visible to its two people only", async () => {
+    for (const who of [prof, riya]) assert.equal((await as(db, who, (tx) => rows(tx, "select id from meetings where id = $1", [meeting]))).length, 1);
+    for (const who of [arjun, outsider]) assert.equal((await as(db, who, (tx) => rows(tx, "select id from meetings where id = $1", [meeting]))).length, 0);
+  });
+
+  it("shares its notes between them, and keeps its people fixed", async () => {
+    await as(db, riya, (tx) => tx.query("update meetings set notes = 'Aim for ECCE' where id = $1", [meeting]));
+    await as(db, arjun, (tx) => tx.query("update meetings set notes = 'Hijacked' where id = $1", [meeting]));
+    assert.equal((await one(db, "select notes from meetings where id = $1", [meeting])).notes, "Aim for ECCE");
+    await expectError(() => as(db, prof, (tx) => tx.query("update meetings set student_id = $1 where id = $2", [arjun, meeting])), /people can't be changed/);
+  });
+
+  it("takes topics from its people, ticked by either, reworded and removed by the author only", async () => {
+    const topic = (await as(db, riya, (tx) => one(tx, "insert into meeting_topics (meeting_id, body) values ($1, 'ECCE or APEC?') returning id", [meeting]))).id;
+    await expectError(() => as(db, arjun, (tx) => tx.query("insert into meeting_topics (meeting_id, body) values ($1, 'Sneaky')", [meeting])), /row-level security/);
+    await as(db, prof, (tx) => tx.query("update meeting_topics set done = true where id = $1", [topic]));
+    assert.equal((await one(db, "select done from meeting_topics where id = $1", [topic])).done, true);
+    await expectError(() => as(db, prof, (tx) => tx.query("update meeting_topics set body = 'Changed' where id = $1", [topic])), /Only the person who added a topic/);
+    await as(db, prof, (tx) => tx.query("delete from meeting_topics where id = $1", [topic]));
+    assert.equal((await rows(db, "select 1 from meeting_topics where id = $1", [topic])).length, 1);
+    await as(db, riya, (tx) => tx.query("delete from meeting_topics where id = $1", [topic]));
+    assert.equal((await rows(db, "select 1 from meeting_topics where id = $1", [topic])).length, 0);
+  });
+
+  it("stamps the end time, keeps action items as tasks, and is cancelled only by its booker before it happens", async () => {
+    const task = (await as(db, prof, (tx) =>
+      one(tx, "insert into tasks (project_id, title, assignee_id, created_by, meeting_id) values ($1, 'Measure light-load points', $2, $3, $4) returning id", [project, riya, prof, meeting]),
+    )).id;
+    await as(db, riya, (tx) => tx.query("update meetings set status = 'done' where id = $1", [meeting]));
+    assert.ok((await one(db, "select ended_at from meetings where id = $1", [meeting])).ended_at);
+    await as(db, prof, (tx) => tx.query("delete from meetings where id = $1", [meeting]));
+    assert.equal((await rows(db, "select 1 from meetings where id = $1", [meeting])).length, 1, "a finished meeting stays");
+    await as(db, prof, (tx) => tx.query("update meetings set status = 'scheduled' where id = $1", [meeting]));
+    await as(db, riya, (tx) => tx.query("delete from meetings where id = $1", [meeting]));
+    assert.equal((await rows(db, "select 1 from meetings where id = $1", [meeting])).length, 1, "only the booker cancels");
+    await as(db, prof, (tx) => tx.query("delete from meetings where id = $1", [meeting]));
+    assert.equal((await rows(db, "select 1 from meetings where id = $1", [meeting])).length, 0);
+    assert.equal((await one(db, "select meeting_id from tasks where id = $1", [task])).meeting_id, null);
+  });
+});
+
 describe("sanity", () => {
   it("leaves today's helper consistent with the database clock", async () => {
     const { d } = await one(db, "select current_date::text as d");

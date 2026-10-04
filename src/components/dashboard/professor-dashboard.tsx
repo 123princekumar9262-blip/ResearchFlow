@@ -10,7 +10,7 @@ import { JoinCodeCard } from "@/components/settings/join-code";
 import { formatCode } from "@/lib/join-code";
 import { GettingStarted, type ChecklistItem } from "@/components/onboarding/checklist";
 import { Tip } from "@/components/onboarding/tips";
-import { InviteTip, NotificationsTip } from "@/components/onboarding/tip-kinds";
+import { InviteTip } from "@/components/onboarding/tip-kinds";
 import { MobileSummary } from "@/components/dashboard/mobile-summary";
 import { MoreForToday } from "@/components/dashboard/disclosure-bits";
 import { CopyInviteButton } from "@/components/onboarding/tip-kinds";
@@ -33,7 +33,20 @@ function isoDaysAgo(n: number): string {
   return new Date(Date.now() - n * 86_400_000).toISOString();
 }
 
-export function ProfessorDashboard({ ws, extras, checklist, ui }: { ws: Workspace; extras: ProfessorExtras; checklist: ChecklistItem[]; ui: Disclosure }) {
+export function ProfessorDashboard({
+  ws,
+  extras,
+  checklist,
+  ui,
+  top,
+}: {
+  ws: Workspace;
+  extras: ProfessorExtras;
+  checklist: ChecklistItem[];
+  ui: Disclosure;
+  /** The next meeting and the notifications prompt, shown with the tips. */
+  top?: React.ReactNode;
+}) {
   const { today, userId } = ws;
   const name = new Map(ws.members.map((m) => [m.user_id, m.full_name]));
   for (const s of extras.students) name.set(s.id, s.full_name);
@@ -124,7 +137,7 @@ export function ProfessorDashboard({ ws, extras, checklist, ui }: { ws: Workspac
           A short check-in now beats a surprise later.
         </Tip>
       )}
-      <NotificationsTip />
+      {top}
     </>
   );
 

@@ -37,7 +37,7 @@ export async function sendTestNotification() {
     if (!isPushConfigured()) return fail("Notifications aren't set up on the server yet.");
     const sent = await pushToUsers([userId], {
       title: "Notifications are working",
-      body: "You'll hear about professor feedback, reviews and deadlines here.",
+      body: "You'll get a pop-up like this for feedback, new tasks, reviews and meetings.",
       url: "/dashboard",
       tag: "test",
     });

@@ -38,6 +38,7 @@ function titleFor(pathname: string, role: string): string {
     log: "Progress log",
     calendar: "Calendar",
     reports: "Reports",
+    meetings: "Meetings",
     projects: "Projects",
     students: "Students",
     notifications: "Notifications",
