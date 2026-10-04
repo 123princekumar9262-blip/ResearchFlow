@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Download, MonitorSmartphone, Share, SquarePlus, X } from "lucide-react";
+import { Download, EllipsisVertical, ExternalLink, MonitorDown, MonitorSmartphone, Share, SquarePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -125,17 +125,86 @@ function IosSteps({ open, onOpenChange }: { open: boolean; onOpenChange: (open: 
   );
 }
 
+type Platform = "android" | "desktop" | "in-app";
+
+function platform(): Platform {
+  if (typeof navigator === "undefined") return "desktop";
+  const ua = navigator.userAgent;
+  // Browsers inside other apps (WhatsApp, Instagram, Gmail…) can't install anything.
+  if (/FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)/i.test(ua)) return "in-app";
+  return /Android/i.test(ua) ? "android" : "desktop";
+}
+
+function Step({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-3">
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted">{icon}</span>
+      <span>{children}</span>
+    </li>
+  );
+}
+
+/** How to install from the browser's own menu, when it doesn't offer a one-tap install. */
+function ManualSteps({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const where = platform();
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="gap-4">
+        <div>
+          <DialogTitle>Install ResearchFlow</DialogTitle>
+          <DialogDescription>It opens full screen, like any app. This takes three taps.</DialogDescription>
+        </div>
+        <ol className="space-y-3 text-[14px]">
+          {where === "in-app" && (
+            <Step icon={<ExternalLink className="size-4" aria-hidden />}>
+              This page is open inside another app. Open the menu and choose <b>Open in Chrome</b> (or your browser) first.
+            </Step>
+          )}
+          {where !== "desktop" ? (
+            <>
+              <Step icon={<EllipsisVertical className="size-4" aria-hidden />}>
+                In <b>Chrome</b>, tap the <b>⋮</b> menu at the top right.
+              </Step>
+              <Step icon={<SquarePlus className="size-4" aria-hidden />}>
+                Tap <b>Install app</b> (on some phones: <b>Add to Home screen</b>).
+              </Step>
+              <Step icon={<LogoMark className="size-4" />}>
+                Tap <b>Install</b>. Open ResearchFlow from its new icon.
+              </Step>
+            </>
+          ) : (
+            <>
+              <Step icon={<MonitorDown className="size-4" aria-hidden />}>
+                In <b>Chrome</b> or <b>Edge</b>, click the <b>install icon</b> at the right end of the address bar.
+              </Step>
+              <Step icon={<EllipsisVertical className="size-4" aria-hidden />}>
+                No icon? Open the <b>⋮</b> menu → <b>Cast, save and share</b> → <b>Install page as app</b> (in Edge: <b>…</b> → <b>Apps</b> → <b>Install this site as an app</b>).
+              </Step>
+              <Step icon={<LogoMark className="size-4" />}>
+                Click <b>Install</b>. ResearchFlow opens in its own window.
+              </Step>
+            </>
+          )}
+        </ol>
+        <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+          If the menu says <b className="text-foreground">Open app</b> instead, ResearchFlow is already installed: look for its icon on your home screen or in your apps.
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** "Install app" in the account menu, when this device can install it. */
 export function InstallMenuItem() {
   const { state, install } = useInstall();
   const [steps, setSteps] = useState(false);
-  if (state !== "prompt" && state !== "ios") return null;
+  if (state === "installed") return null;
   return (
     <>
       <DropdownMenuItem onSelect={() => (state === "prompt" ? void install() : setSteps(true))}>
         <Download /> Install app
       </DropdownMenuItem>
-      <IosSteps open={steps} onOpenChange={setSteps} />
+      {state === "ios" ? <IosSteps open={steps} onOpenChange={setSteps} /> : <ManualSteps open={steps} onOpenChange={setSteps} />}
     </>
   );
 }
@@ -178,17 +247,15 @@ export function InstallCard() {
         <p className="text-xs text-muted-foreground">
           {state === "installed"
             ? "You're using the installed app on this device."
-            : state === "unavailable"
-              ? "This browser doesn't offer installation here. Use Chrome or Edge (or Safari on iPhone), over an https:// address."
-              : "Opens full screen from your home screen or desktop, with shortcuts to Today's log and My tasks."}
+            : "Opens full screen from your home screen or desktop, with shortcuts to Today's log and My tasks."}
         </p>
       </div>
-      {(state === "prompt" || state === "ios") && (
+      {state !== "installed" && (
         <Button size="sm" onClick={() => (state === "prompt" ? void install() : setSteps(true))}>
           <Download /> Install
         </Button>
       )}
-      <IosSteps open={steps} onOpenChange={setSteps} />
+      {state === "ios" ? <IosSteps open={steps} onOpenChange={setSteps} /> : <ManualSteps open={steps} onOpenChange={setSteps} />}
     </div>
   );
 }
