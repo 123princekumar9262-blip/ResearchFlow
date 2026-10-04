@@ -715,6 +715,33 @@ describe("onboarding progress", () => {
   });
 });
 
+describe("deleting a project", () => {
+  let doomed;
+  before(async () => {
+    doomed = (await as(db, riya, (tx) => one(tx, "select create_project('Throwaway study', '', current_date, null, $1) as id", [[prof]]))).id;
+    await as(db, riya, (tx) => tx.query("insert into tasks (project_id, title, created_by) values ($1, 'Read papers', $2)", [doomed, riya]));
+    await as(db, riya, (tx) => tx.query("insert into progress_logs (project_id, author_id, log_date, completed_work, minutes_spent) values ($1, $2, current_date, 'Read two papers', 60)", [doomed, riya]));
+  });
+
+  it("is refused for anyone but the creator", async () => {
+    await expectError(() => as(db, prof, (tx) => tx.query("select delete_project($1, 'Throwaway study')", [doomed])), /Only the person who created this project/);
+    await as(db, prof, (tx) => tx.query("delete from projects where id = $1", [doomed]));
+    assert.equal((await rows(db, "select id from projects where id = $1", [doomed])).length, 1);
+  });
+
+  it("needs the project's name typed back", async () => {
+    await expectError(() => as(db, riya, (tx) => tx.query("select delete_project($1, 'Throwaway')", [doomed])), /Type the project's name/);
+  });
+
+  it("removes the project and everything in it", async () => {
+    await as(db, riya, (tx) => tx.query("select delete_project($1, '  throwaway STUDY ')", [doomed]));
+    for (const table of ["projects", "tasks", "progress_logs", "project_members"]) {
+      const col = table === "projects" ? "id" : "project_id";
+      assert.equal((await rows(db, `select 1 from ${table} where ${col} = $1`, [doomed])).length, 0, table);
+    }
+  });
+});
+
 describe("sanity", () => {
   it("leaves today's helper consistent with the database clock", async () => {
     const { d } = await one(db, "select current_date::text as d");

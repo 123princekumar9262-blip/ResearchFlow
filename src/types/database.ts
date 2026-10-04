@@ -523,6 +523,7 @@ export type Database = {
       };
       add_project_member: { Args: { p_project: string; p_user: string }; Returns: undefined };
       join_professor: { Args: { p_code: string }; Returns: string };
+      delete_project: { Args: { p_project: string; p_confirm_title: string }; Returns: undefined };
       regenerate_join_code: { Args: Record<string, never>; Returns: string };
       review_task: { Args: { p_task: string; p_approve: boolean; p_comment?: string }; Returns: undefined };
       convert_remark_to_task: {

@@ -108,7 +108,7 @@ export default async function ProjectLayout({ children, params }: LayoutProps<"/
             )}
           </div>
         </div>
-        <ProjectSettings project={project} members={b.members} people={people ?? []} isProfessor={b.myRole === "professor"} />
+        <ProjectSettings project={project} members={b.members} people={people ?? []} isProfessor={b.myRole === "professor"} canDelete={project.created_by === b.userId} />
       </header>
       <ProjectTabs projectId={project.id} counts={{ tasks: open, blockers: counts[0].count ?? 0, remarks: counts[1].count ?? 0 }} unlocked={[...unlockedTabs]} />
       {children}

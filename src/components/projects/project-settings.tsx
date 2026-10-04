@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Settings2, UserMinus, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Settings2, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { UserAvatar } from "@/components/common/ui-bits";
 import { useServerAction } from "@/components/common/use-server-action";
-import { addProjectMember, removeProjectMember, updateProject } from "@/server/actions/projects";
+import { addProjectMember, deleteProject, removeProjectMember, updateProject } from "@/server/actions/projects";
 import type { Project, ProjectStatus } from "@/types/database";
 import type { LinkedPerson } from "./new-project-dialog";
 
@@ -20,11 +21,14 @@ export function ProjectSettings({
   members,
   people,
   isProfessor,
+  canDelete = false,
 }: {
   project: Project;
   members: { user_id: string; full_name: string; role: string }[];
   people: LinkedPerson[];
   isProfessor: boolean;
+  /** The project's creator can delete it. */
+  canDelete?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<ProjectStatus>(project.status);
@@ -58,7 +62,7 @@ export function ProjectSettings({
         >
           <DialogHeader>
             <DialogTitle>Project settings</DialogTitle>
-            <DialogDescription>Projects are never deleted, so the record survives. Archive one to hide it.</DialogDescription>
+            <DialogDescription>Archive a project to hide it and keep its record. Delete it only if you want it gone for good.</DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
             <Label htmlFor="ps-title">Title</Label>
@@ -140,12 +144,93 @@ export function ProjectSettings({
             )}
           </div>
 
+          {canDelete && (
+            <>
+              <Separator />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 flex-[1_1_14rem]">
+                  <p className="text-sm font-medium">Delete project</p>
+                  <p className="text-xs text-muted-foreground">Removes the project and everything in it, for every member.</p>
+                </div>
+                <DeleteProjectButton project={project} onDeleted={() => setOpen(false)} />
+              </div>
+            </>
+          )}
+
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               Close
             </Button>
             <Button type="submit" disabled={save.pending}>
               {save.pending && <Loader2 className="animate-spin" />} Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Asks once, with the project's name typed back, before deleting it for good. */
+function DeleteProjectButton({ project, onDeleted }: { project: Project; onDeleted: () => void }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const { pending, run } = useServerAction();
+  const matches = typed.trim().toLowerCase() === project.title.trim().toLowerCase();
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setTyped("");
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="sm" className="border-danger/40 text-danger hover:bg-danger/5 hover:text-danger">
+          <Trash2 /> Delete project
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            // This dialog sits inside the settings form in React's tree; keep its submit to itself.
+            e.stopPropagation();
+            if (!matches) return;
+            run(() => deleteProject({ projectId: project.id, confirmTitle: typed }), {
+              onSuccess: () => {
+                setOpen(false);
+                onDeleted();
+                router.replace("/dashboard");
+              },
+            });
+          }}
+          className="space-y-4"
+        >
+          <DialogHeader>
+            <DialogTitle>Delete this project?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes <b className="font-semibold text-foreground">{project.title}</b> and everything in it: milestones, tasks, logs, files,
+              feedback, blockers and decisions. Every member loses it. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+            Want to keep the record? Close this and set <b className="font-medium text-foreground">Status</b> to <b className="font-medium text-foreground">Archived</b> instead.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="delete-confirm">
+              Type <b className="font-semibold">{project.title}</b> to confirm
+            </Label>
+            <Input id="delete-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" placeholder={project.title} autoFocus />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="destructive" disabled={!matches || pending}>
+              {pending ? <Loader2 className="animate-spin" /> : <Trash2 />} Delete project
             </Button>
           </DialogFooter>
         </form>
