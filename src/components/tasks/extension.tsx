@@ -72,7 +72,7 @@ export function RequestExtensionButton({
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               required
-              placeholder="The PubMed runs need the A100 node, which is booked until Thursday."
+              placeholder="The power analyser is booked by another group until Thursday."
             />
           </div>
           <DialogFooter>

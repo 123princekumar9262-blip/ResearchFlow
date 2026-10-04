@@ -22,7 +22,7 @@ export default async function ProjectDecisionsPage({ params }: PageProps<"/proje
       {decisions.length === 0 ? (
         <div className="rounded-xl border bg-card">
           <EmptyState icon={Scale} title="No decisions recorded">
-            When you pick a dataset, a baseline, a metric or an approach, write down why.
+            When you pick a topology, a switching frequency, a control method or a component, write down why.
           </EmptyState>
         </div>
       ) : (

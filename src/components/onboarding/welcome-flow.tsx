@@ -412,7 +412,7 @@ export function WelcomeFlow(props: Props) {
                       id="welcome-title"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder={role === "student" ? "Structured pruning for graph neural networks" : "Graph learning lab: 2026 projects"}
+                      placeholder={role === "student" ? "Boost converter for solar MPPT" : "Power electronics lab: 2026 projects"}
                       required
                       maxLength={200}
                       autoFocus

@@ -42,7 +42,7 @@ export function DecisionForm({ projectId, today, decisions }: { projectId: strin
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="space-y-1.5">
           <Label htmlFor="dc-title">Decision</Label>
-          <Input id="dc-title" name="title" required maxLength={200} autoFocus placeholder="Use structured (channel) pruning, not unstructured" />
+          <Input id="dc-title" name="title" required maxLength={200} autoFocus placeholder="Use synchronous rectification instead of a diode" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="dc-date">Decided on</Label>
@@ -59,7 +59,7 @@ export function DecisionForm({ projectId, today, decisions }: { projectId: strin
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="dc-alt">Alternatives considered</Label>
-        <Textarea id="dc-alt" name="alternatives" rows={2} placeholder="Unstructured magnitude pruning: rejected because…" />
+        <Textarea id="dc-alt" name="alternatives" rows={2} placeholder="Schottky diode: rejected because of conduction loss at 5 A…" />
       </div>
       {decisions.length > 0 && (
         <div className="space-y-1.5">

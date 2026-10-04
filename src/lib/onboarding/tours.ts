@@ -78,7 +78,7 @@ function coreStudent(c: TourContext): TourStep[] {
       text: "Anything past its deadline stays here, in red, until it's done or the deadline is formally moved.",
       why: "Late work stays visible. That's the point.",
       short: "Late work stays here, in red, until it's done or the deadline is formally moved.",
-      preview: ["Rerun ablation with 5 seeds · 2d late", "Fix Table 2 baseline · 1d late"],
+      preview: ["Measure efficiency at 4 load points · 2d late", "Fix gate-driver PCB layout · 1d late"],
     },
     {
       id: "s3",
@@ -89,7 +89,7 @@ function coreStudent(c: TourContext): TourStep[] {
       text: "Tasks due today and work you've already started. Keep this list short and finish what's on it.",
       why: "Finished work counts. Started work doesn't.",
       short: "Due today, plus work you've started. Keep it short and finish it.",
-      preview: ["Draft related-work section · Due today", "Cache pruning masks · In progress"],
+      preview: ["Write the literature review · Due today", "Tune the PI controller gains · In progress"],
     },
     {
       id: "s4",
@@ -100,7 +100,7 @@ function coreStudent(c: TourContext): TourStep[] {
       text: "Every deadline and milestone in the next seven days. Calendar shows the full month.",
       why: "No deadline should come as a surprise.",
       short: "Every deadline and milestone in the next seven days.",
-      preview: ["◆ Milestone: Preliminary results · Fri", "Write ablation table · Mon"],
+      preview: ["◆ Milestone: Hardware prototype · Fri", "Plot efficiency vs load · Mon"],
     },
     c.hasProfessor
       ? {
@@ -112,7 +112,7 @@ function coreStudent(c: TourContext): TourStep[] {
           text: "Change requests and questions land here. Reply, mark them addressed, or turn them into tasks in one click.",
           why: "Feedback that becomes a task gets done. Feedback left in a message gets forgotten.",
           short: "Change requests and questions land here. Turn them into tasks in one click.",
-          preview: ["Change request · Add a random-pruning baseline", "Question · Which seed did Table 2 use?"],
+          preview: ["Change request · Add the efficiency curve at light load", "Question · Which switching frequency did Fig. 3 use?"],
         }
       : {
           id: "s5",
@@ -227,7 +227,7 @@ function coreProfessor(c: TourContext): TourStep[] {
       text: "Students submit tasks with their evidence attached: logs, files and links. Approve, or request changes with a comment.",
       why: "Nothing counts as done until you've seen the proof. Keys: A approve, R request changes.",
       short: "Students submit tasks with evidence. Approve, or request changes with a comment.",
-      preview: ["Rerun ablation with 5 seeds · Riya · 2 pieces of evidence"],
+      preview: ["Measure efficiency at 4 load points · Riya · 2 pieces of evidence"],
     },
     {
       id: "p5",
@@ -238,7 +238,7 @@ function coreProfessor(c: TourContext): TourStep[] {
       text: "When a student is stuck, it shows here. A quick answer often saves a week.",
       why: "Blocked time is the most expensive time in research.",
       short: "When a student is stuck, it shows here. A quick answer often saves a week.",
-      preview: ["GPU quota exhausted · Arjun · high"],
+      preview: ["Oscilloscope probe broken · Arjun · high"],
     },
     {
       id: "p6",
@@ -364,7 +364,7 @@ function dashboardChapter(c: TourContext): TourStep[] {
       text: "It stays until the task is done or your professor approves a new date. \"Request extension\" on the task is the honest way to move it.",
       why: "A slipped deadline is visible to both of you, so it gets dealt with.",
       short: "It stays until the task is done or your professor approves a new date.",
-      preview: ["Rerun ablation with 5 seeds · 2d late"],
+      preview: ["Measure efficiency at 4 load points · 2d late"],
     },
     {
       id: "d4",
@@ -376,7 +376,7 @@ function dashboardChapter(c: TourContext): TourStep[] {
       text: "Due today, plus anything you've already started. If it's here, it should move today.",
       why: "A short list gets finished. A long one gets avoided.",
       short: "Due today, plus anything you've started. If it's here, it should move today.",
-      preview: ["Draft related-work section · Due today"],
+      preview: ["Write the literature review · Due today"],
     },
     {
       id: "d5",
@@ -472,7 +472,7 @@ function projectChapter(): TourStep[] {
       target: "tab-files",
       route: project,
       title: "Files and links",
-      text: "Every file and link attached anywhere in the project: plots, drafts, datasets, repositories.",
+      text: "Every file and link attached anywhere in the project: waveform captures, schematics, PCB files, simulations, drafts.",
       why: "Evidence you can open, not evidence you describe.",
       short: "Every file and link attached anywhere in the project.",
     },
@@ -510,7 +510,7 @@ function tasksChapter(c: TourContext): TourStep[] {
       route: projectTasks,
       core: true,
       title: "Create a task",
-      text: "Name it so anyone can tell when it's done: \"Add random-pruning baseline to Table 2\", not \"Improve results\".",
+      text: "Name it so anyone can tell when it's done: \"Add the efficiency-vs-load curve to Fig. 5\", not \"Improve results\".",
       why: "A vague task never finishes. Press C anywhere in a project.",
       short: "Name it so anyone can tell when it's done.",
       bounce: true,
@@ -610,7 +610,7 @@ function logChapter(): TourStep[] {
       target: "log-done",
       route: sheet,
       title: "Work done",
-      text: "Concrete and specific: \"Ran the 10–70% sweep on Cora; 50% holds accuracy within 1%.\"",
+      text: "Concrete and specific: \"Ran the converter at 50 kHz: 92% efficiency at full load, 85% at 20% load.\"",
       why: "Specific work is believable. \"Worked on experiments\" is not.",
       short: "Be specific. \"Worked on experiments\" isn't believable.",
     },
@@ -620,9 +620,9 @@ function logChapter(): TourStep[] {
       target: "log-problems",
       route: sheet,
       title: "Problems",
-      text: "What didn't work and why, if you know. Failed runs count as progress here.",
+      text: "What didn't work and why, if you know. Failed tests count as progress here.",
       why: "A problem your professor sees early is a problem they can help with.",
-      short: "What didn't work, and why. Failed runs count as progress.",
+      short: "What didn't work, and why. Failed tests count as progress.",
     },
     {
       id: "l5",

@@ -138,7 +138,7 @@ export function NewTaskDialog({
           </DialogHeader>
           <div className="space-y-1.5">
             <Label htmlFor="nt-title">Title</Label>
-            <Input id="nt-title" name="title" required maxLength={200} autoFocus placeholder="Run baseline on Cora with 5 seeds" />
+            <Input id="nt-title" name="title" required maxLength={200} autoFocus placeholder="Measure efficiency at 25, 50, 75 and 100% load" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="nt-desc">Description</Label>

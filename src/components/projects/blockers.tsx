@@ -54,7 +54,7 @@ export function RaiseBlockerForm({ projectId, tasks, isStudent }: { projectId: s
     >
       <div className="space-y-1.5">
         <Label htmlFor="bl-title">What&apos;s blocking you?</Label>
-        <Input id="bl-title" name="title" required maxLength={200} autoFocus placeholder="GPU quota exhausted on the cluster" />
+        <Input id="bl-title" name="title" required maxLength={200} autoFocus placeholder="Oscilloscope current probe broken in the lab" />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="bl-desc">Details</Label>

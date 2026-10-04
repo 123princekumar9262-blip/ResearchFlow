@@ -240,7 +240,7 @@ ${notes}` : current.completed_work) : notes);
           onChange={(e) => setCompleted(e.target.value)}
           rows={3}
           required
-          placeholder="Ran 4 ablation configs; drafted table v2. Failed attempts count too."
+          placeholder="Simulated the boost converter in LTspice at 50 kHz: 92% efficiency at full load. Failed attempts count too."
         />
       </div>
       <div className="grid gap-3.5 md:grid-cols-2">
@@ -248,13 +248,13 @@ ${notes}` : current.completed_work) : notes);
           <Label htmlFor="log-problems" className="gap-1.5">
             <CircleAlert className="size-3.5 text-warning" /> Problems or what failed
           </Label>
-          <Textarea id="log-problems" value={problems} onChange={(e) => setProblems(e.target.value)} rows={2} placeholder="OOM on config 4 at batch 128" />
+          <Textarea id="log-problems" value={problems} onChange={(e) => setProblems(e.target.value)} rows={2} placeholder="Output ripple 8% at light load; MOSFET above 60 °C" />
         </div>
         <div className="space-y-1.5" data-tour="log-next">
           <Label htmlFor="log-next" className="gap-1.5">
             <ArrowRight className="size-3.5 text-muted-foreground" /> Next steps
           </Label>
-          <Textarea id="log-next" value={nextSteps} onChange={(e) => setNextSteps(e.target.value)} rows={2} placeholder="Retry with gradient checkpointing" />
+          <Textarea id="log-next" value={nextSteps} onChange={(e) => setNextSteps(e.target.value)} rows={2} placeholder="Try a larger output capacitor; check the gate-drive dead time" />
         </div>
       </div>
 

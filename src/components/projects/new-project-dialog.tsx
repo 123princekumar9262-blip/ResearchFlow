@@ -61,7 +61,7 @@ export function NewProjectDialog({ people, today, role }: { people: LinkedPerson
           </DialogHeader>
           <div className="space-y-1.5">
             <Label htmlFor="np-title">Title</Label>
-            <Input id="np-title" name="title" required maxLength={200} placeholder="Structured pruning for GNNs" autoFocus />
+            <Input id="np-title" name="title" required maxLength={200} placeholder="Bidirectional DC-DC converter for EV charging" autoFocus />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="np-desc">Description</Label>
