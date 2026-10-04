@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { askAssistant } from "@/server/actions/assistant";
+import "katex/dist/katex.min.css";
 
 interface Ref {
   href: string;
@@ -52,12 +53,47 @@ function suggestions(role: "student" | "professor", students: { id: string; name
   };
 }
 
-/** **bold**, `code`, and [T3]-style tags that become links to the cited task, log or request. */
+// KaTeX is only fetched once an answer has a formula in it.
+let katex: typeof import("katex").default | null = null;
+let katexLoading: Promise<unknown> | null = null;
+
+/** A formula: $...$ inline, or its own scrollable line. Shows the source until KaTeX arrives. */
+function TeX({ src, block }: { src: string; block?: boolean }) {
+  const [, loaded] = useState(0);
+  useEffect(() => {
+    if (katex) return;
+    katexLoading ??= import("katex").then((m) => (katex = m.default));
+    let live = true;
+    katexLoading.then(() => live && loaded((n) => n + 1));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const html = katex?.renderToString(src, { displayMode: !!block, throwOnError: false, strict: "ignore", output: "html" });
+  if (block)
+    return (
+      <div className="my-1.5 overflow-x-auto rounded-lg bg-muted/60 px-3 py-2.5 text-center text-[15px] [&_.katex-display]:m-0">
+        {html ? <span dangerouslySetInnerHTML={{ __html: html }} /> : <code className="font-mono text-[12.5px] text-muted-foreground">{src}</code>}
+      </div>
+    );
+  return html ? <span className="whitespace-nowrap" dangerouslySetInnerHTML={{ __html: html }} /> : <code className="font-mono text-[0.9em]">{src}</code>;
+}
+
+/** The formula inside a line that is nothing but a formula: $$…$$, $…$ or \[…\]. */
+function displayMath(line: string) {
+  const t = line.trim();
+  return t.match(/^\$\$(.+)\$\$$/)?.[1] ?? t.match(/^\\\[(.+)\\\]$/)?.[1] ?? t.match(/^\$([^$]+)\$[.,;:]?$/)?.[1] ?? null;
+}
+
+/** **bold**, `code`, $math$, and [T3]-style tags that become links to the cited task, log or request. */
 function Inline({ text, refs }: { text: string; refs?: Record<string, Ref> }) {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[TLRBSP]\d+\])/g);
+  // A $…$ formula has no space just inside its dollars and no digit after, so "$5 and $10" stays text.
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\\\(.+?\\\)|\$(?=\S)[^$\n]+?(?<=\S)\$(?!\d)|\[[TLRBSP]\d+\])/g);
   return (
     <>
       {parts.map((p, i) => {
+        if (/^\\\(.+\\\)$/.test(p)) return <TeX key={i} src={p.slice(2, -2)} />;
+        if (/^\$[^$]+\$$/.test(p)) return <TeX key={i} src={p.slice(1, -1)} />;
         if (/^\*\*[^*]+\*\*$/.test(p))
           return (
             <b key={i} className="font-semibold">
@@ -100,66 +136,119 @@ function dedupe(text: string, refs?: Record<string, Ref>) {
   return out;
 }
 
-/** A small, safe Markdown subset: paragraphs, "- " bullets and "1. " steps. */
-function Answer({ text: raw, refs }: { text: string; refs?: Record<string, Ref> }) {
-  const text = dedupe(raw, refs);
-  const blocks: { kind: "p" | "ul" | "ol"; lines: string[] }[] = [];
-  for (const raw of text.split("\n")) {
-    const line = raw.trimEnd();
-    const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
-    const step = line.match(/^\s*\d+[.)]\s+(.*)$/);
-    const kind = bullet ? "ul" : step ? "ol" : "p";
-    const content = bullet?.[1] ?? step?.[1] ?? line;
-    if (!line.trim()) {
-      blocks.push({ kind: "p", lines: [] });
+interface Item {
+  text: string;
+  /** Formulas under a bullet, and the "where …" lines explaining them, stay with that bullet. */
+  more: { math: boolean; s: string }[];
+}
+interface Block {
+  kind: "p" | "ul" | "ol" | "h" | "math";
+  items: Item[];
+}
+
+/** Lines into blocks. Lists stay open across blank lines and the formulas under their bullets. */
+function parse(text: string): Block[] {
+  const blocks: Block[] = [];
+  let gap = true;
+  const lines = text.split("\n");
+  for (let n = 0; n < lines.length; n++) {
+    const line = lines[n].trimEnd();
+    const last = blocks[blocks.length - 1];
+    if (!line.trim() || /^\s*(-{3,}|\*{3,})\s*$/.test(line)) {
+      gap = true;
       continue;
     }
-    const last = blocks[blocks.length - 1];
-    if (last && last.kind === kind && (kind !== "p" || last.lines.length > 0)) last.lines.push(content);
-    else blocks.push({ kind, lines: [content] });
+    // A formula: one line, or a $$ / \[ block over several.
+    let math = displayMath(line);
+    if (math === null && /^\s*(\$\$|\\\[)\s*$/.test(line)) {
+      const body: string[] = [];
+      while (++n < lines.length && !/^\s*(\$\$|\\\])\s*$/.test(lines[n])) body.push(lines[n]);
+      math = body.join(" ");
+    }
+    if (math !== null) {
+      if (last && (last.kind === "ul" || last.kind === "ol")) last.items[last.items.length - 1].more.push({ math: true, s: math });
+      else blocks.push({ kind: "math", items: [{ text: math, more: [] }] });
+      gap = false;
+      continue;
+    }
+    const heading = line.match(/^\s*#{1,6}\s+(.*)$/);
+    const bullet = line.match(/^\s*[-*•]\s+(.*)$/);
+    const step = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    const kind = heading ? "h" : bullet ? "ul" : step ? "ol" : "p";
+    const text = (heading?.[1] ?? bullet?.[1] ?? step?.[1] ?? line).trim();
+    const item = last && (last.kind === "ul" || last.kind === "ol") ? last.items[last.items.length - 1] : null;
+    if (kind === "p" && item?.more.at(-1)?.math && (!gap || /^(where|with|here|so|and)/i.test(text))) item.more.push({ math: false, s: text });
+    else if (kind === "p" && !gap && last?.kind === "p") last.items.push({ text, more: [] });
+    // An indented line straight after a bullet continues it.
+    else if (kind === "p" && !gap && /^\s{2,}/.test(line) && (last?.kind === "ul" || last?.kind === "ol")) last.items[last.items.length - 1].text += ` ${text}`;
+    else if ((kind === "ul" || kind === "ol") && last?.kind === kind) last.items.push({ text, more: [] });
+    else blocks.push({ kind, items: [{ text, more: [] }] });
+    gap = false;
   }
+  return blocks;
+}
+
+function ListItem({ item, refs }: { item: Item; refs?: Record<string, Ref> }) {
+  return (
+    <li className="pl-0.5">
+      <Inline text={item.text} refs={refs} />
+      {item.more.map((m, k) =>
+        m.math ? (
+          <TeX key={k} src={m.s} block />
+        ) : (
+          <p key={k} className="text-muted-foreground">
+            <Inline text={m.s} refs={refs} />
+          </p>
+        ),
+      )}
+    </li>
+  );
+}
+
+/** A small, safe Markdown subset: paragraphs, headings, "- " bullets, "1. " steps and formulas. */
+function Answer({ text: raw, refs }: { text: string; refs?: Record<string, Ref> }) {
+  const blocks = parse(dedupe(raw, refs));
   // Numbered steps keep counting across the bullet lists the model puts between them.
   const starts = new Map<number, number>();
   let step = 1;
   blocks.forEach((b, i) => {
     if (b.kind === "ol") {
       starts.set(i, step);
-      step += b.lines.length;
-    } else if (b.kind === "p" && b.lines.length) step = 1;
+      step += b.items.length;
+    } else if (b.kind === "p" || b.kind === "h") step = 1;
   });
   return (
-    <div className="grid gap-2">
-      {blocks
-        .map((b, i) => ({ ...b, i }))
-        .filter((b) => b.lines.length)
-        .map((b) =>
-          b.kind === "p" ? (
-            <p key={b.i}>
-              {b.lines.map((l, j) => (
-                <Fragment key={j}>
-                  {j > 0 && <br />}
-                  <Inline text={l.replace(/^#+\s*/, "")} refs={refs} />
-                </Fragment>
-              ))}
-            </p>
-          ) : b.kind === "ul" ? (
-            <ul key={b.i} className="grid list-disc gap-1 pl-5">
-              {b.lines.map((l, j) => (
-                <li key={j}>
-                  <Inline text={l} refs={refs} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <ol key={b.i} start={starts.get(b.i)} className="grid list-decimal gap-1 pl-5">
-              {b.lines.map((l, j) => (
-                <li key={j}>
-                  <Inline text={l} refs={refs} />
-                </li>
-              ))}
-            </ol>
-          ),
-        )}
+    <div className="grid min-w-0 gap-2.5">
+      {blocks.map((b, i) =>
+        b.kind === "h" ? (
+          <p key={i} className="pt-1 text-[13px] font-semibold text-foreground">
+            <Inline text={b.items[0].text.replace(/\*\*/g, "")} refs={refs} />
+          </p>
+        ) : b.kind === "math" ? (
+          <TeX key={i} src={b.items[0].text} block />
+        ) : b.kind === "p" ? (
+          <p key={i}>
+            {b.items.map((l, j) => (
+              <Fragment key={j}>
+                {j > 0 && <br />}
+                <Inline text={l.text} refs={refs} />
+              </Fragment>
+            ))}
+          </p>
+        ) : b.kind === "ul" ? (
+          <ul key={i} className="grid list-disc gap-1.5 pl-4 marker:text-muted-foreground">
+            {b.items.map((item, j) => (
+              <ListItem key={j} item={item} refs={refs} />
+            ))}
+          </ul>
+        ) : (
+          <ol key={i} start={starts.get(i)} className="grid list-decimal gap-1.5 pl-5 marker:text-muted-foreground">
+            {b.items.map((item, j) => (
+              <ListItem key={j} item={item} refs={refs} />
+            ))}
+          </ol>
+        ),
+      )}
     </div>
   );
 }
@@ -306,7 +395,7 @@ export function AskAi({ role, projects, students }: AskAiProps) {
                       {m.text}
                     </p>
                   ) : (
-                    <div key={i} className="mr-4 rounded-2xl rounded-bl-md border bg-card px-3.5 py-2.5 text-[14px] leading-relaxed">
+                    <div key={i} className="min-w-0 rounded-2xl rounded-bl-md border bg-card px-4 py-3 text-[14px] leading-6 break-words sm:mr-4">
                       <Answer text={m.text} refs={m.refs} />
                     </div>
                   ),
