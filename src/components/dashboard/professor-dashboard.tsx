@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Inbox, OctagonAlert, ScrollText, Users } from "lucide-react";
+import { Inbox, Moon, OctagonAlert, ScrollText, Users } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { DeadlineChip } from "@/components/common/deadline-chip";
@@ -10,6 +10,7 @@ import { JoinCodeCard } from "@/components/settings/join-code";
 import { GettingStarted, type ChecklistItem } from "@/components/onboarding/checklist";
 import { Tip } from "@/components/onboarding/tips";
 import { InviteTip, NotificationsTip } from "@/components/onboarding/tip-kinds";
+import { MobileSummary } from "@/components/dashboard/mobile-summary";
 import { daysBetween, formatDay, formatMinutes, isoWeekNumber, timeAgo, weekStartOf } from "@/lib/domain/dates";
 import { professorNextAction } from "@/lib/domain/next-action";
 import { percent, projectProgress } from "@/lib/domain/progress";
@@ -141,8 +142,8 @@ export function ProfessorDashboard({ ws, extras, checklist }: { ws: Workspace; e
 
   return (
     <div className="rf-stagger space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="max-md:hidden">
+      <div className="flex flex-wrap items-end justify-between gap-3 max-md:hidden">
+        <div>
           <h1 className="text-[22px] font-semibold tracking-tight">
             Your students <span className="font-medium text-muted-foreground">· {extras.students.length}</span>
           </h1>
@@ -167,11 +168,25 @@ export function ProfessorDashboard({ ws, extras, checklist }: { ws: Workspace; e
         </div>
       </div>
 
+      <MobileSummary
+        title={
+          <>
+            Your students <span className="font-medium text-muted-foreground">· {extras.students.length}</span>
+          </>
+        }
+        aside={`Week ${isoWeekNumber(today)}`}
+        tiles={[
+          { label: "Reviews waiting", value: pendingReviews.length, href: "/reviews", icon: Inbox, tone: "info", hot: pendingReviews.length > 0 },
+          { label: "Blockers need you", value: needYou.length, href: "#blockers", icon: OctagonAlert, tone: "danger", hot: needYou.length > 0 },
+          { label: `Quiet ${STALE_DAYS}+ days`, value: staleStudents.length, href: "#attention", icon: Moon, tone: "warning", hot: staleStudents.length > 0 },
+          { label: "Reports to read", value: reports.length, href: "/reports", icon: ScrollText, tone: "info", hot: reports.length > 0 },
+        ]}
+      />
       <GettingStarted items={checklist} />
       {tips}
       <NextActionCard action={action} />
 
-      <Section icon={Users} title="Sorted by attention needed" tour="students">
+      <Section id="attention" icon={Users} title="Sorted by attention needed" tour="students">
         {rows.length === 0 ? (
           <p className="px-4 py-6 text-center text-muted-foreground">You aren&apos;t on any projects yet. Create one, or ask a student to add you to theirs.</p>
         ) : (

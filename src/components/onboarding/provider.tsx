@@ -7,7 +7,7 @@ import { saveOnboarding } from "@/server/actions/onboarding";
 import { daysBetween } from "@/lib/domain/dates";
 import type { ChapterId, Onboarding, TourId } from "@/lib/onboarding/state";
 import { PARTS, tourSteps, type TourContext } from "@/lib/onboarding/tours";
-import { TourRunner } from "./tour-runner";
+import { LIVE_KEY, TourRunner } from "./tour-runner";
 
 export interface StartOptions {
   /** A part of a chapter that plays on its own, e.g. "tasks-dialog". */
@@ -192,6 +192,19 @@ export function OnboardingProvider({ basics, initial, persisted, children }: { b
     const t = setTimeout(() => start("core"), 400);
     return () => clearTimeout(t);
   }, [pathname, router, start]);
+
+  // A reload in the middle of the core tour carries on where it was.
+  useEffect(() => {
+    let live: string | null = null;
+    try {
+      live = sessionStorage.getItem(LIVE_KEY);
+    } catch {
+      /* storage blocked */
+    }
+    if (live === null) return;
+    const t = setTimeout(() => start("core", { fromStep: Number(live) || 0 }), 600);
+    return () => clearTimeout(t);
+  }, [start]);
 
   // Help, the command palette and the shortcuts dialog ask for tours by event.
   useEffect(() => {

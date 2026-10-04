@@ -69,6 +69,7 @@ export function Tip({
   children,
   cta,
   className,
+  hideOnPhone = false,
 }: {
   id: string;
   kind: "state" | "discovery";
@@ -77,6 +78,8 @@ export function Tip({
   children?: React.ReactNode;
   cta?: { label: React.ReactNode; href?: string; onClick?: () => void };
   className?: string;
+  /** Phones already show this fact (e.g. the summary's Overdue number). */
+  hideOnPhone?: boolean;
 }) {
   const api = useOnboardingMaybe();
   const allowed = !!api && api.tipAllowed(id);
@@ -84,6 +87,7 @@ export function Tip({
 
   useEffect(() => {
     if (!api || !allowed) return;
+    if (hideOnPhone && window.matchMedia("(max-width: 767px)").matches) return;
     let timer: ReturnType<typeof setTimeout>;
     const ask = () => {
       if (typing()) timer = setTimeout(ask, 1000);

@@ -34,6 +34,16 @@ interface Run {
 }
 
 const PAD = 6;
+/** The core tour in progress in this tab, so a full page reload (or a failed soft navigation) picks it up again. */
+export const LIVE_KEY = "rf.tour.live";
+function remember(step: number | null) {
+  try {
+    if (step === null) sessionStorage.removeItem(LIVE_KEY);
+    else sessionStorage.setItem(LIVE_KEY, String(step));
+  } catch {
+    /* storage blocked */
+  }
+}
 let synthetic = false;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -151,6 +161,7 @@ export function TourRunner({
     token.current += 1;
     navigating.current = false;
     if (bounceTimer.current) clearTimeout(bounceTimer.current);
+    if (runRef.current?.tour === "core") remember(null);
     commit(null);
     onRunning(null);
     setRect(null);
@@ -261,7 +272,10 @@ export function TourRunner({
       else setRect(null);
       setContainer(found[0]?.closest<HTMLElement>('[role="dialog"]') ?? null);
       commit({ ...r, i: index, phase: "show", path: window.location.pathname });
-      if (r.tour === "core") apiRef.current.update({ core: "paused", step: index, pausedOn: apiRef.current.today });
+      if (r.tour === "core") {
+        apiRef.current.update({ core: "paused", step: index, pausedOn: apiRef.current.today });
+        remember(index);
+      }
       if (r.ctx.phone && "vibrate" in navigator) navigator.vibrate?.(10);
       if (bounceTimer.current) clearTimeout(bounceTimer.current);
       if (step.bounce || step.action?.kind === "log") {

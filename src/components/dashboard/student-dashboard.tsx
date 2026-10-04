@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlarmClock, BarChart3, CalendarDays, FolderKanban, FolderPlus, Hourglass, ListPlus, MessageSquareText, NotebookPen, Target, TrendingUp } from "lucide-react";
+import { AlarmClock, BarChart3, CalendarDays, Clock, Flame, FolderKanban, FolderPlus, Hourglass, ListPlus, MessageSquareText, NotebookPen, Target } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { DeadlineChip } from "@/components/common/deadline-chip";
@@ -13,12 +13,13 @@ import { JoinProfessorCard } from "@/components/settings/join-professor";
 import { GettingStarted, type ChecklistItem } from "@/components/onboarding/checklist";
 import { ChapterTrigger, Tip } from "@/components/onboarding/tips";
 import { NotificationsTip } from "@/components/onboarding/tip-kinds";
+import { MobileSummary } from "@/components/dashboard/mobile-summary";
 import { addDays, daysBetween, formatDay, formatMinutes, isoWeekday, isoWeekNumber, timeAgo, weekdayShort } from "@/lib/domain/dates";
 import { compareByDeadline } from "@/lib/domain/deadlines";
 import { remarksAwaiting, studentNextAction } from "@/lib/domain/next-action";
 import { percent, projectProgress } from "@/lib/domain/progress";
 import { delayRisk } from "@/lib/domain/risk";
-import { slipRate, usualMinutesOn, weekByDay } from "@/lib/domain/analytics";
+import { logStreak, slipRate, usualMinutesOn, weekByDay } from "@/lib/domain/analytics";
 import type { Workspace } from "@/lib/data/workspace";
 import type { Health } from "@/lib/data/shell";
 
@@ -111,6 +112,7 @@ export function StudentDashboard({
   const emptyPast = elapsed.filter((d) => d.date < today && d.minutes === 0 && isoWeekday(d.date) <= 5);
   const maxDay = Math.max(60, ...week.map((d) => d.minutes));
   const firstName = profile.full_name.split(" ")[0];
+  const streak = logStreak(ws.myLogs, today);
 
   const header = (
     <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
@@ -182,9 +184,45 @@ export function StudentDashboard({
     <div className="space-y-4">
       <ChapterTrigger tour="dashboard" />
       <div className="rf-rise max-md:hidden">{header}</div>
+      <MobileSummary
+        title={
+          <>
+            {greeting(profile.timezone)}, <span className="bg-grad-primary bg-clip-text text-transparent">{firstName}</span>
+          </>
+        }
+        aside={`Week ${isoWeekNumber(today)} · day ${isoWeekday(today)}`}
+        tiles={[
+          { label: "Overdue", value: overdue.length, href: "/tasks?view=overdue", icon: AlarmClock, tone: "danger", hot: overdue.length > 0 },
+          { label: "Due today", value: dueToday.length, href: "/tasks?view=today", icon: Target, tone: "warning", hot: dueToday.length > 0 },
+          { label: "Logged this week", value: formatMinutes(weekMinutes), href: "/log", icon: Clock, tone: "primary" },
+          { label: "Day streak", value: `${streak}d`, href: "/log", icon: Flame, tone: "success", hot: streak > 0 },
+        ]}
+      >
+        <div className="grid gap-2 px-4 py-3">
+          <WeekBars week={week} today={today} maxDay={maxDay} />
+          <p className="text-xs text-muted-foreground">
+            {elapsed.filter((d) => d.minutes > 0).length} of {elapsed.length} days logged this week
+          </p>
+        </div>
+        <div className="divide-y border-t">
+          {ws.projects.map((p) => {
+            const progress = projectProgress(ws.tasks.filter((t) => t.project_id === p.id), ws.milestones.filter((m) => m.project_id === p.id));
+            return (
+              <Link key={p.id} href={`/projects/${p.id}`} className="grid gap-1.5 px-4 py-2.5 active:bg-accent" data-tour="projects">
+                <span className="flex items-center gap-2">
+                  <span className={cn("size-[7px] shrink-0 rounded-full", HEALTH_DOT[health[p.id] ?? "good"])} />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{p.title}</span>
+                  <span className="font-mono text-[11.5px] tabular text-muted-foreground">{percent(progress)}%</span>
+                </span>
+                <ProgressBar value={progress} tone={progress === 1 ? "success" : "primary"} />
+              </Link>
+            );
+          })}
+        </div>
+      </MobileSummary>
       <GettingStarted items={checklist} />
       {overdue.length > 0 && (
-        <Tip id="overdue" kind="state" tone="danger" title={`You have ${overdue.length} overdue task${overdue.length === 1 ? "" : "s"}.`} cta={{ label: "Review overdue", href: "/tasks?view=overdue" }}>
+        <Tip id="overdue" kind="state" tone="danger" hideOnPhone title={`You have ${overdue.length} overdue task${overdue.length === 1 ? "" : "s"}.`} cta={{ label: "Review overdue", href: "/tasks?view=overdue" }}>
           Review them now: finish them, or request an extension.
         </Tip>
       )}
@@ -393,52 +431,9 @@ export function StudentDashboard({
             </div>
           </Section>
 
-          <Section icon={TrendingUp} accent="success" title="Progress" tour="projects" className="order-6 md:hidden" action={<span className="font-mono">{formatMinutes(weekMinutes)} this week</span>}>
-            <div className="divide-y">
-              {ws.projects.map((p) => {
-                const progress = projectProgress(ws.tasks.filter((t) => t.project_id === p.id), ws.milestones.filter((m) => m.project_id === p.id));
-                return (
-                  <Link key={p.id} href={`/projects/${p.id}`} className="grid gap-1.5 px-3.5 py-2.5">
-                    <span className="flex items-center gap-2">
-                      <span className={cn("size-[7px] shrink-0 rounded-full", HEALTH_DOT[health[p.id] ?? "good"])} />
-                      <span className="min-w-0 flex-1 truncate font-medium">{p.title}</span>
-                      <span className="font-mono text-[11.5px] tabular text-muted-foreground">{percent(progress)}%</span>
-                    </span>
-                    <ProgressBar value={progress} tone={progress === 1 ? "success" : "primary"} />
-                  </Link>
-                );
-              })}
-              <p className="px-3.5 py-2.5 text-xs text-muted-foreground">
-                {elapsed.filter((d) => d.minutes > 0).length} of {elapsed.length} days logged this week
-                {emptyPast.length > 0 && ` · ${emptyPast.map((d) => WEEKDAY_LONG[isoWeekday(d.date) - 1]).join(", ")} empty`}
-              </p>
-            </div>
-          </Section>
-
           <Section icon={BarChart3} title="This week" tour="this-week" className="order-7 max-md:hidden lg:order-none" action={<span className="font-mono">{formatMinutes(weekMinutes)}</span>}>
             <div className="grid gap-2 px-3.5 py-3">
-              <div className="grid h-14 grid-cols-7 items-end gap-1" aria-hidden>
-                {week.map((d) => (
-                  <i
-                    key={d.date}
-                    title={`${formatDay(d.date)}: ${formatMinutes(d.minutes)}`}
-                    className={cn(
-                      "block rounded-t-[3px]",
-                      d.minutes > 0 ? "bg-primary bg-[linear-gradient(180deg,var(--primary-2),var(--primary))] origin-bottom animate-[rf-rise_0.6s_ease-out_both]" : "bg-border",
-                      d.date === today && "outline-[1.5px] outline-offset-2 outline-primary outline-dashed",
-                      d.date > today && "opacity-40",
-                    )}
-                    style={{ height: d.minutes > 0 ? `${Math.max(8, (d.minutes / maxDay) * 100)}%` : "4%" }}
-                  />
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1 text-center font-mono text-[10px] text-muted-foreground">
-                {week.map((d, i) => (
-                  <span key={d.date} className={cn(d.date === today && "font-semibold text-foreground")}>
-                    {weekdayShort(i)[0]}
-                  </span>
-                ))}
-              </div>
+              <WeekBars week={week} today={today} maxDay={maxDay} />
               <p className="text-xs">
                 {elapsed.filter((d) => d.minutes > 0).length} of {elapsed.length} days logged
                 {emptyPast.length > 0 && (
@@ -474,5 +469,35 @@ export function StudentDashboard({
         </p>
       )}
     </div>
+  );
+}
+
+/** Minutes logged per day this week, Monday to Sunday; today is outlined. */
+function WeekBars({ week, today, maxDay }: { week: { date: string; minutes: number }[]; today: string; maxDay: number }) {
+  return (
+    <>
+      <div className="grid h-14 grid-cols-7 items-end gap-1" aria-hidden>
+        {week.map((d) => (
+          <i
+            key={d.date}
+            title={`${formatDay(d.date)}: ${formatMinutes(d.minutes)}`}
+            className={cn(
+              "block rounded-t-[3px]",
+              d.minutes > 0 ? "bg-primary bg-[linear-gradient(180deg,var(--primary-2),var(--primary))] origin-bottom animate-[rf-rise_0.6s_ease-out_both]" : "bg-border",
+              d.date === today && "outline-[1.5px] outline-offset-2 outline-primary outline-dashed",
+              d.date > today && "opacity-40",
+            )}
+            style={{ height: d.minutes > 0 ? `${Math.max(8, (d.minutes / maxDay) * 100)}%` : "4%" }}
+          />
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center font-mono text-[10px] text-muted-foreground">
+        {week.map((d, i) => (
+          <span key={d.date} className={cn(d.date === today && "font-semibold text-foreground")}>
+            {weekdayShort(i)[0]}
+          </span>
+        ))}
+      </div>
+    </>
   );
 }
