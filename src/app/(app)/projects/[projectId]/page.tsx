@@ -6,6 +6,7 @@ import { cn } from "cn";
 import { RowLink, Section, UserAvatar } from "@/components/common/ui-bits";
 import { MilestoneList } from "@/components/projects/milestones";
 import { getProjectBundle } from "@/lib/data/project";
+import { getDisclosure } from "@/lib/data/disclosure";
 import { daysBetween, formatDay, formatMinutes, timeAgo } from "@/lib/domain/dates";
 
 export default async function ProjectOverviewPage({ params }: PageProps<"/projects/[projectId]">) {
@@ -14,7 +15,7 @@ export default async function ProjectOverviewPage({ params }: PageProps<"/projec
   const { supabase, today } = b;
   const names = new Map(b.members.map((m) => [m.user_id, m.full_name]));
 
-  const [logs, remarks, blockers, decisions] = await Promise.all([
+  const [logs, remarks, blockers, decisions, disclosure] = await Promise.all([
     supabase.from("progress_logs").select("*").eq("project_id", projectId).order("log_date", { ascending: false }).limit(4),
     supabase
       .from("remarks")
@@ -26,7 +27,14 @@ export default async function ProjectOverviewPage({ params }: PageProps<"/projec
       .order("created_at"),
     supabase.from("blockers").select("*").eq("project_id", projectId).eq("status", "open").order("created_at"),
     supabase.from("decisions").select("*").eq("project_id", projectId).is("superseded_by", null).order("decided_on", { ascending: false }).limit(3),
+    getDisclosure(),
   ]);
+  // Blockers, requests and decisions appear once someone adds one ("Show everything" shows them anyway).
+  const all = disclosure.all;
+  const showBlockers = all || (blockers.data ?? []).length > 0;
+  const showRemarks = all || (remarks.data ?? []).length > 0;
+  const showDecisions = all || (decisions.data ?? []).length > 0;
+  const side = !!b.project.description || showBlockers || showRemarks || showDecisions;
 
   const milestones = b.milestones.map((m) => {
     const tasks = b.tasks.filter((t) => t.milestone_id === m.id);
@@ -41,7 +49,7 @@ export default async function ProjectOverviewPage({ params }: PageProps<"/projec
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <ChapterTrigger tour="project" />
-      <div className="rf-stagger space-y-5 lg:col-span-2">
+      <div className={cn("rf-stagger space-y-5", side ? "lg:col-span-2" : "lg:col-span-3")}>
         {milestones.length === 0 && <FirstMilestoneTip />}
         <Section icon={Flag} title="Milestones" count={milestones.length} tour="milestones">
           <MilestoneList projectId={projectId} milestones={milestones} today={today} canSetDueDate={b.canSetProfessorDeadline} />
@@ -67,7 +75,7 @@ export default async function ProjectOverviewPage({ params }: PageProps<"/projec
         </Section>
       </div>
 
-      <div className="space-y-5">
+      <div className={cn("space-y-5", !side && "hidden")}>
         {b.project.description && (
           <Section icon={Info} accent="info" title="About">
             <p className="px-4 py-3 whitespace-pre-line text-muted-foreground">{b.project.description}</p>
@@ -78,51 +86,57 @@ export default async function ProjectOverviewPage({ params }: PageProps<"/projec
           </Section>
         )}
 
-        <Section icon={OctagonAlert} title="Open blockers" count={(blockers.data ?? []).length} tone="danger" action={viewAll("blockers")} bodyClassName="divide-y">
-          {(blockers.data ?? []).length === 0 ? (
-            <p className="px-4 py-4 text-center text-muted-foreground">Nothing blocking.</p>
-          ) : (
-            (blockers.data ?? []).map((bl) => (
-              <RowLink key={bl.id} href={`/projects/${projectId}/blockers#blocker-${bl.id}`}>
-                <CircleDot className={cn("size-3.5", bl.severity === "high" ? "text-danger" : "text-warning")} />
-                <span className="min-w-0 flex-1 truncate">{bl.title}</span>
-                <span className="text-xs text-muted-foreground">{daysBetween(bl.created_at.slice(0, 10), today)}d</span>
-              </RowLink>
-            ))
-          )}
-        </Section>
+        {showBlockers && (
+          <Section icon={OctagonAlert} title="Open blockers" count={(blockers.data ?? []).length} tone="danger" action={viewAll("blockers")} bodyClassName="divide-y">
+            {(blockers.data ?? []).length === 0 ? (
+              <p className="px-4 py-4 text-center text-muted-foreground">Nothing blocking.</p>
+            ) : (
+              (blockers.data ?? []).map((bl) => (
+                <RowLink key={bl.id} href={`/projects/${projectId}/blockers#blocker-${bl.id}`}>
+                  <CircleDot className={cn("size-3.5", bl.severity === "high" ? "text-danger" : "text-warning")} />
+                  <span className="min-w-0 flex-1 truncate">{bl.title}</span>
+                  <span className="text-xs text-muted-foreground">{daysBetween(bl.created_at.slice(0, 10), today)}d</span>
+                </RowLink>
+              ))
+            )}
+          </Section>
+        )}
 
-        <Section icon={MessageSquareText} title="Awaiting response" count={(remarks.data ?? []).length} tone="warning" action={viewAll("remarks")} bodyClassName="divide-y">
-          {(remarks.data ?? []).length === 0 ? (
-            <p className="px-4 py-4 text-center text-muted-foreground">No open requests.</p>
-          ) : (
-            (remarks.data ?? []).map((r) => (
-              <RowLink key={r.id} href={r.task_id ? `/tasks/${r.task_id}#remark-${r.id}` : `/projects/${projectId}/remarks#remark-${r.id}`}>
-                <span className="min-w-0 flex-1">
-                  <span className="line-clamp-2">{r.body}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {names.get(r.author_id)} · {timeAgo(r.created_at)}
+        {showRemarks && (
+          <Section icon={MessageSquareText} title="Awaiting response" count={(remarks.data ?? []).length} tone="warning" action={viewAll("remarks")} bodyClassName="divide-y">
+            {(remarks.data ?? []).length === 0 ? (
+              <p className="px-4 py-4 text-center text-muted-foreground">No open requests.</p>
+            ) : (
+              (remarks.data ?? []).map((r) => (
+                <RowLink key={r.id} href={r.task_id ? `/tasks/${r.task_id}#remark-${r.id}` : `/projects/${projectId}/remarks#remark-${r.id}`}>
+                  <span className="min-w-0 flex-1">
+                    <span className="line-clamp-2">{r.body}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {names.get(r.author_id)} · {timeAgo(r.created_at)}
+                    </span>
                   </span>
-                </span>
-              </RowLink>
-            ))
-          )}
-        </Section>
+                </RowLink>
+              ))
+            )}
+          </Section>
+        )}
 
-        <Section icon={Scale} title="Recent decisions" action={viewAll("decisions")} bodyClassName="divide-y">
-          {(decisions.data ?? []).length === 0 ? (
-            <p className="px-4 py-4 text-center text-muted-foreground">No decisions recorded.</p>
-          ) : (
-            (decisions.data ?? []).map((d) => (
-              <RowLink key={d.id} href={`/projects/${projectId}/decisions#decision-${d.id}`}>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{d.title}</span>
-                  <span className="text-xs text-muted-foreground">{formatDay(d.decided_on)}</span>
-                </span>
-              </RowLink>
-            ))
-          )}
-        </Section>
+        {showDecisions && (
+          <Section icon={Scale} title="Recent decisions" action={viewAll("decisions")} bodyClassName="divide-y">
+            {(decisions.data ?? []).length === 0 ? (
+              <p className="px-4 py-4 text-center text-muted-foreground">No decisions recorded.</p>
+            ) : (
+              (decisions.data ?? []).map((d) => (
+                <RowLink key={d.id} href={`/projects/${projectId}/decisions#decision-${d.id}`}>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{d.title}</span>
+                    <span className="text-xs text-muted-foreground">{formatDay(d.decided_on)}</span>
+                  </span>
+                </RowLink>
+              ))
+            )}
+          </Section>
+        )}
       </div>
     </div>
   );
