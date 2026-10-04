@@ -163,7 +163,11 @@ export async function loadMeeting(meetingId: string): Promise<MeetingDetail | nu
     userId,
     timeZone: profile.timezone,
     today,
-    projects: (projects.data ?? []).map((p) => ({ id: p.id, title: p.title })),
+    // The project with the most open work between them first: it's the action items' default.
+    projects: (projects.data ?? [])
+      .map((p) => ({ id: p.id, title: p.title, open: (open.data ?? []).filter((t) => t.project_id === p.id).length }))
+      .sort((a, b) => b.open - a.open)
+      .map(({ id, title }) => ({ id, title })),
     topics: (topics.data ?? []).map(({ author, ...t }) => ({ ...t, authorName: author?.full_name ?? "Someone" })),
     actionItems: (items.data ?? []).map(task),
     agenda: {
