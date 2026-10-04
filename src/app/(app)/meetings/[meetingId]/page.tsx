@@ -110,7 +110,17 @@ export default async function MeetingPage({ params }: PageProps<"/meetings/[meet
                         key={t.id}
                         id={`${meeting.id}:last:${t.id}`}
                         href={`/tasks/${t.id}`}
-                        aside={t.status === "done" ? <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="size-3.5" /> Done</span> : <StatusPill status={t.status} />}
+                        aside={
+                          t.status === "done" ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-success">
+                              <CheckCircle2 className="size-3.5" /> Done
+                            </span>
+                          ) : t.due && t.due < today && t.status !== "in_review" ? (
+                            <span className="text-xs text-danger">{daysBetween(t.due, today)}d late</span>
+                          ) : (
+                            <StatusPill status={t.status} />
+                          )
+                        }
                       >
                         {t.title}
                       </AgendaRow>

@@ -530,18 +530,19 @@ console.log(`✓ remarks, blockers, decisions${ext.error ? " (extension requests
 // ───────────────────────────── meetings ─────────────────────────────
 // Last week's one-to-one with Riya (ended, with notes and three action items),
 // and two coming up. Skipped until migration 11 has created the table.
+// (Every row names every column: a bulk insert sends null for missing ones.)
 
 const meetingRows = await db
   .from("meetings")
   .insert([
     { professor_id: prof, student_id: riya, starts_at: at(-7, "16:00"), created_by: prof, created_at: at(-9, "10:00"),
       notes: "Gate driver: overshoot target is under 20% at 400 V; Riya's layout gets 18%, good enough to move on.\nThermal: the small heatsink won't do full load. Try the larger one with a fan before changing the frequency.\nPaper: aim for ECCE if the efficiency curve is done by the end of the month, otherwise APEC.\nArjun needs a PV emulator slot; Prof. Mehta to ask the drives group." },
-    { professor_id: prof, student_id: riya, starts_at: at(1, "16:00"), created_by: prof, created_at: at(-1, "18:30") },
-    { professor_id: prof, student_id: arjun, starts_at: at(3, "11:30"), created_by: arjun, created_at: at(-1, "09:30") },
+    { professor_id: prof, student_id: riya, starts_at: at(1, "16:00"), created_by: prof, created_at: at(-1, "18:30"), notes: "" },
+    { professor_id: prof, student_id: arjun, starts_at: at(3, "11:30"), created_by: arjun, created_at: at(-1, "09:30"), notes: "" },
   ])
   .select("id");
 if (meetingRows.error) {
-  console.log("✓ meetings skipped (apply migration 20261009000011 first)");
+  console.log(`✓ meetings skipped (${meetingRows.error.message}; apply migration 20261009000011 first if the table is missing)`);
 } else {
   const [last, nextRiya] = meetingRows.data;
   check("meeting done", await db.from("meetings").update({ status: "done" }).eq("id", last.id));

@@ -205,21 +205,21 @@ export function ActionItems({
           }}
         >
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Measure efficiency at 5% and 10% load" maxLength={200} aria-label="Action item" />
-          <div className="flex flex-wrap items-center gap-2">
-            {projects.length > 1 && (
-              <select value={projectId} onChange={(e) => setProjectId(e.target.value)} aria-label="Project" className="h-9 min-w-0 flex-1 rounded-md border bg-transparent px-2 text-[13px]">
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
-            )}
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {projects.length > 1 && (
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} aria-label="Project" className="h-9 w-full min-w-0 truncate rounded-md border bg-transparent px-2 text-[13px]">
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          )}
+          <div className="flex items-center gap-2">
+            <label className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
               Due
-              <Input type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} className="h-9 w-auto" aria-label="Due date" />
+              <Input type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} className="h-9 min-w-0 flex-1" aria-label="Due date" />
             </label>
-            <Button type="submit" size="sm" disabled={pending || !title.trim()} className="ml-auto">
+            <Button type="submit" size="sm" disabled={pending || !title.trim()} className="h-9 shrink-0">
               {pending ? <Loader2 className="animate-spin" /> : <Plus />} Add
             </Button>
           </div>

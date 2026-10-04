@@ -152,7 +152,9 @@ export async function loadMeeting(meetingId: string): Promise<MeetingDetail | nu
     supabase.from("progress_logs").select("minutes_spent, problems").in("project_id", shared).eq("author_id", studentId).gte("log_date", since).order("log_date", { ascending: false }),
   ]);
 
-  const openTasks = (open.data ?? []).map(task);
+  // Last meeting's items are listed under it (with "late" when they are), not again below.
+  const agreed = new Set((lastItems.data ?? []).map((t) => t.id));
+  const openTasks = (open.data ?? []).map(task).filter((t) => !agreed.has(t.id));
   const stats = report.data ? readStats(report.data.stats) : null;
 
   return {
