@@ -5,6 +5,7 @@ import { JoinProfessorCard } from "@/components/settings/join-professor";
 import { LinkedPeople, ProfileForm, ThemePicker } from "@/components/settings/settings-forms";
 import { InstallCard } from "@/components/pwa/install";
 import { NotificationsCard } from "@/components/settings/notifications-card";
+import { ShowEverything } from "@/components/settings/show-everything";
 import { isEmailConfigured } from "@/lib/notify/email";
 import { requireSession } from "@/lib/auth";
 import { isAiEnabled } from "@/lib/ai/remark-to-tasks";
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
         </Section>
         <Section icon={Palette} title="Appearance">
           <ThemePicker />
+          <ShowEverything />
         </Section>
         <Section id="notifications" icon={BellRing} title="Notifications">
           <NotificationsCard digestEmail={profile.digest_email ?? true} emailReady={isEmailConfigured()} />

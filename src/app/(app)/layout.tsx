@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/auth";
 import { getShell } from "@/lib/data/shell";
 import { getWorkspace } from "@/lib/data/workspace";
+import { getDisclosure } from "@/lib/data/disclosure";
 import { weekStartOf } from "@/lib/domain/dates";
 import { readOnboarding } from "@/lib/onboarding/state";
 import { OnboardingProvider } from "@/components/onboarding/provider";
@@ -12,7 +13,7 @@ import { PeekKeys } from "@/components/tasks/task-peek";
 
 export default async function AppLayout({ children, modal }: LayoutProps<"/">) {
   const { profile, today, userId, supabase } = await requireSession();
-  const [shell, ws, supervised, report] = await Promise.all([
+  const [shell, ws, supervised, report, disclosure] = await Promise.all([
     getShell(),
     getWorkspace(),
     profile.role === "student"
@@ -28,12 +29,13 @@ export default async function AppLayout({ children, modal }: LayoutProps<"/">) {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    getDisclosure(),
   ]);
   const onboarding = readOnboarding(profile);
-  // A task the task tours can open: one of mine still in play, else any.
   // The feedback tour opens a project that has feedback in it, waiting ones first.
   const remarksProjectId =
     (ws.remarks.find((r) => !r.addressed_at && (r.kind === "change_request" || r.kind === "question")) ?? ws.remarks[0])?.project_id ?? null;
+  // A task the task tours can open: one of mine still in play, else any.
   const tourTask = ws.tasks.find((t) => t.assignee_id === userId && t.status !== "done") ?? ws.tasks.find((t) => t.status !== "done") ?? ws.tasks[0];
 
   return (
@@ -55,6 +57,8 @@ export default async function AppLayout({ children, modal }: LayoutProps<"/">) {
           : profile.role === "student"
             ? `/reports/${weekStartOf(today)}`
             : null,
+        ui: { stage: disclosure.stage, all: disclosure.all, has: disclosure.has },
+        earnedNow: disclosure.earnedNow,
       }}
     >
       <div className="flex min-h-dvh">

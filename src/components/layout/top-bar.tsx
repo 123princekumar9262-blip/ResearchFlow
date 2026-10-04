@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { LogOut, Monitor, Moon, Plus, Settings, Sun } from "lucide-react";
+import { LogOut, Monitor, Moon, Plus, Settings, Sun, Target } from "lucide-react";
 import { UserAvatar } from "@/components/common/ui-bits";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,8 @@ import { CRUMB_SLOT_ID } from "./page-crumbs";
 import { formatDay } from "@/lib/domain/dates";
 import { InstallMenuItem } from "@/components/pwa/install";
 import { HelpMenu } from "@/components/onboarding/help";
+import { useOnboardingMaybe } from "@/components/onboarding/provider";
+import { FocusPill } from "@/components/tasks/focus-mode";
 
 /** The page's name for the top bar, until a page supplies its own breadcrumb. */
 function titleFor(pathname: string, role: string): string {
@@ -46,6 +48,13 @@ function titleFor(pathname: string, role: string): string {
 export function TopBar({ name, role, inbox, today }: { name: string; role: string; inbox: InboxItem[]; today: string }) {
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+  // Progressive disclosure: a brand-new account sees title, Help and avatar only.
+  const ui = useOnboardingMaybe()?.ui;
+  const stage = ui?.stage ?? 3;
+  const canLog = role === "student" && (ui?.has.log ?? true);
+  // Inside a project, + Log starts with that project selected.
+  const projectId = pathname.match(/^\/projects\/([0-9a-f-]{36})/i)?.[1];
+  const logHref = projectId ? `/log/new?project=${projectId}` : "/log/new";
   return (
     <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 flex h-12 items-center gap-2 border-b bg-background/90 px-4 backdrop-blur md:px-6 print:hidden">
       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -54,16 +63,24 @@ export function TopBar({ name, role, inbox, today }: { name: string; role: strin
         {/* On phones the dashboard's greeting is folded into the bar: "Today · Sat 3 Oct". */}
         {pathname === "/dashboard" && <span className="shrink-0 font-mono text-[11px] text-muted-foreground md:hidden">{formatDay(today)}</span>}
       </div>
-      <SearchButton />
-      {role === "student" && (
+      <FocusPill />
+      {stage >= 2 && <SearchButton hint={stage >= 3} />}
+      {role === "student" && (ui?.has.tasks ?? true) && (
+        <Button variant="ghost" size="sm" className="hidden h-8 gap-1.5 text-muted-foreground md:inline-flex" asChild>
+          <Link href="/focus" title="Focus on your next task">
+            <Target className="size-3.5" /> Focus
+          </Link>
+        </Button>
+      )}
+      {canLog && (
         <Button variant="outline" size="sm" className="hidden h-8 gap-1.5 sm:inline-flex" asChild>
-          <Link href="/log/new" data-tour="log-button">
+          <Link href={logHref} data-tour="log-button">
             <Plus className="size-3.5" /> Log <kbd>N</kbd>
           </Link>
         </Button>
       )}
       <HelpMenu />
-      <InboxBell items={inbox} />
+      {stage >= 2 && <InboxBell items={inbox} />}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon-sm" className="rounded-full" aria-label="Account menu">

@@ -108,8 +108,11 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
               <RiskDot risk={risk} />
               {openDeps.length > 0 && task.status !== "done" && <span className="text-xs text-muted-foreground">waiting on {openDeps.length}</span>}
               {task.completed_at && <span className="text-xs text-muted-foreground">closed {timeAgo(task.completed_at)}</span>}
-              <span className="ml-auto max-md:hidden">
+              <span className="ml-auto">
                 <FocusMode
+                  buttonClassName="max-md:hidden"
+                  loggedMinutes={minutes}
+                  estimateHours={task.estimate_hours === null ? null : Number(task.estimate_hours)}
                   taskId={taskId}
                   projectId={task.project_id}
                   title={task.title}

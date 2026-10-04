@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
+import { Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { inviteMessage } from "@/components/settings/join-code";
 import { useOnboardingMaybe } from "./provider";
 import { clickTourTarget, Tip } from "./tips";
@@ -74,5 +76,26 @@ export function NotificationsTip() {
   if (!api || !off || api.accountAge < 7) return null;
   return (
     <Tip id="notifications-off" kind="state" title="Turn on notifications so requests and reviews reach your phone." cta={{ label: "Turn on", href: "/settings#notifications" }} />
+  );
+}
+
+/** Stage 1, professors: the one primary action, a ready-made invitation. */
+export function CopyInviteButton({ code }: { code: string }) {
+  const api = useOnboardingMaybe();
+  return (
+    <Button
+      size="lg"
+      onClick={() =>
+        navigator.clipboard.writeText(inviteMessage(code, window.location.origin)).then(
+          () => {
+            toast.success("Invite message copied");
+            if (api && !api.state.shared) api.update({ shared: true });
+          },
+          () => toast.error("Couldn't copy. Select the code and copy it instead."),
+        )
+      }
+    >
+      <Copy /> Copy invite message
+    </Button>
   );
 }

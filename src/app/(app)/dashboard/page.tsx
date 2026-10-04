@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getWorkspace } from "@/lib/data/workspace";
 import { getShell } from "@/lib/data/shell";
+import { getDisclosure } from "@/lib/data/disclosure";
 import { addDays, isoWeekday, weekStartOf } from "@/lib/domain/dates";
 import { isAiEnabled } from "@/lib/ai/remark-to-tasks";
 import { needsWelcome, readOnboarding } from "@/lib/onboarding/state";
@@ -22,6 +23,8 @@ export default async function DashboardPage() {
   const onboarding = readOnboarding(profile);
   if (needsWelcome(onboarding)) redirect("/welcome");
 
+  const { stage, all, has } = await getDisclosure();
+  const ui = { stage, all, has };
   const firstProject = ws.projects[0]?.id;
   const projectHref = firstProject ? `/projects/${firstProject}` : "/projects?new=1";
 
@@ -49,6 +52,7 @@ export default async function DashboardPage() {
       <ProfessorDashboard
         ws={ws}
         checklist={checklist}
+        ui={ui}
         extras={{
           students: studentList,
           logs: logs.data ?? [],
@@ -80,6 +84,7 @@ export default async function DashboardPage() {
       aiEnabled={isAiEnabled()}
       health={health}
       checklist={checklist}
+      ui={ui}
       signals={{
         evening: hour >= 17,
         reportDue: isoWeekday(today) === 7 && hour >= 18 && !report.data?.submitted_at,

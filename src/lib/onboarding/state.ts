@@ -37,6 +37,12 @@ export const onboardingSchema = z.object({
   autoOn: day.optional(),
   /** The account existed before onboarding shipped. */
   legacy: z.boolean().optional(),
+  /** Progressive disclosure: the highest stage reached (it never goes back). */
+  stage: z.number().int().min(1).max(3).optional(),
+  /** Features unlocked so far: feature → the day it appeared ("-" for the first snapshot, never "New"). */
+  unlocked: z.record(z.string().max(16), z.string().max(10)).optional(),
+  /** "Show everything" in Settings. */
+  all: z.boolean().optional(),
 });
 
 export type Onboarding = z.infer<typeof onboardingSchema>;

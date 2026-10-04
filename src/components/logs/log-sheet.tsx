@@ -18,12 +18,14 @@ export function LogSheet({
   defaultProjectId,
   defaultTaskIds,
   defaultMinutes,
+  defaultCompleted,
 }: {
   data: ComposerData;
   today: string;
   defaultProjectId?: string;
   defaultTaskIds?: string[];
   defaultMinutes?: number;
+  defaultCompleted?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -48,6 +50,7 @@ export function LogSheet({
           defaultProjectId={defaultProjectId}
           defaultTaskIds={defaultTaskIds}
           defaultMinutes={defaultMinutes}
+          defaultCompleted={defaultCompleted}
           variant="sheet"
           onSaved={() => router.back()}
         />

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { saveOnboarding } from "@/server/actions/onboarding";
 import { daysBetween } from "@/lib/domain/dates";
 import type { ChapterId, Onboarding, TourId } from "@/lib/onboarding/state";
+import { FEATURE_PATH, type Disclosure, type Feature } from "@/lib/onboarding/stage";
 import { PARTS, tourSteps, type TourContext } from "@/lib/onboarding/tours";
 import { LIVE_KEY, TourRunner } from "./tour-runner";
 
@@ -36,6 +37,9 @@ export interface Basics {
   remarksProjectId: string | null;
   weekStart: string;
   reportPath: string | null;
+  /** Progressive disclosure: stage and unlocked features (calm redesign spec). */
+  ui: Disclosure;
+  earnedNow: Feature[];
 }
 
 interface Api extends Basics {
@@ -60,6 +64,8 @@ interface Api extends Basics {
   dismissTip: (id: string, kind: "state" | "discovery") => void;
   checklist: { done: number; total: number } | null;
   setChecklist: (c: { done: number; total: number } | null) => void;
+  /** Unlocked within the last 3 days and not opened yet: shows a "New" pill. */
+  isNew: (f: Feature) => boolean;
 }
 
 const Ctx = createContext<Api | null>(null);
@@ -268,6 +274,36 @@ export function OnboardingProvider({ basics, initial, persisted, children }: { b
 
   const [checklist, setChecklist] = useState<{ done: number; total: number } | null>(null);
 
+  // Record unlocks and the stage as they happen, so they never go back. The first snapshot of
+  // an account is recorded without dates: only features that appear after it are "New".
+  useEffect(() => {
+    if (!persisted) return;
+    const stored = stateRef.current.unlocked ?? {};
+    const first = Object.keys(stored).length === 0;
+    const add = basics.earnedNow.filter((k) => !(k in stored));
+    const higher = (stateRef.current.stage ?? 0) < basics.ui.stage;
+    if (!add.length && !higher) return;
+    const unlocked = { ...stored };
+    for (const k of add) unlocked[k] = first || stateRef.current.legacy ? "-" : basics.today;
+    update({ unlocked, ...(higher ? { stage: basics.ui.stage } : {}) });
+  }, [basics.earnedNow, basics.ui.stage, basics.today, persisted, update]);
+
+  const isNew = useCallback(
+    (f: Feature) => {
+      const on = state.unlocked?.[f];
+      if (!on || on === "-" || (state.seen ?? []).includes(`open:${f}`)) return false;
+      return daysBetween(on, basics.today) <= 3;
+    },
+    [state.unlocked, state.seen, basics.today],
+  );
+
+  // Opening the page clears its "New" pill.
+  useEffect(() => {
+    for (const [f, path] of Object.entries(FEATURE_PATH)) {
+      if (path && (pathname === path || pathname.startsWith(`${path}/`)) && isNew(f as Feature)) markSeen(`open:${f}`);
+    }
+  }, [pathname, isNew, markSeen]);
+
   const api = useMemo<Api>(
     () => ({
       ...basics,
@@ -289,8 +325,9 @@ export function OnboardingProvider({ basics, initial, persisted, children }: { b
       dismissTip,
       checklist,
       setChecklist,
+      isNew,
     }),
-    [basics, state, persisted, update, running, start, offer, markSeen, isSeen, accountAge, resumeStep, context, tipSlot, tipAllowed, requestTip, releaseTip, dismissTip, checklist],
+    [basics, state, persisted, update, running, start, offer, markSeen, isSeen, accountAge, resumeStep, context, tipSlot, tipAllowed, requestTip, releaseTip, dismissTip, checklist, isNew],
   );
 
   return (

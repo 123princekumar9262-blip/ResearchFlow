@@ -239,6 +239,8 @@ export function TourRunner({
 
       let found: HTMLElement[] = [];
       if (step.target) {
+        // Sections folded under "More for today" open for the tour.
+        if (!findTargets(step).length) window.dispatchEvent(new Event("rf:reveal"));
         // A new page may still be rendering; on the same page a missing target is simply not there.
         const fresh = moved || !!step.inDialog || index === firstIndex.current || Date.now() - pathChangedAt.current < 4000;
         const until = Date.now() + (fresh ? 6000 : 1200);
@@ -276,7 +278,9 @@ export function TourRunner({
         apiRef.current.update({ core: "paused", step: index, pausedOn: apiRef.current.today });
         remember(index);
       }
-      if (r.ctx.phone && "vibrate" in navigator) navigator.vibrate?.(10);
+      // A haptic tick per step, only once the user has touched the page (browsers block it before).
+      const activated = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive;
+      if (r.ctx.phone && activated && "vibrate" in navigator) navigator.vibrate?.(10);
       if (bounceTimer.current) clearTimeout(bounceTimer.current);
       if (step.bounce || step.action?.kind === "log") {
         bounce(found[0]);

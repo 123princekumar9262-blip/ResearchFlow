@@ -4,6 +4,7 @@ import { DeadlineChip } from "@/components/common/deadline-chip";
 import { ProjectTabs } from "@/components/projects/project-tabs";
 import { ProjectSettings } from "@/components/projects/project-settings";
 import { getProjectBundle } from "@/lib/data/project";
+import { getDisclosure } from "@/lib/data/disclosure";
 import { percent } from "@/lib/domain/progress";
 import { daysBetween, formatDay } from "@/lib/domain/dates";
 
@@ -25,7 +26,7 @@ export default async function ProjectLayout({ children, params }: LayoutProps<"/
   const b = await getProjectBundle(projectId);
   const { project, today } = b;
 
-  const [{ data: people }, counts] = await Promise.all([
+  const [{ data: people }, counts, used, disclosure] = await Promise.all([
     b.supabase.rpc("linked_people"),
     Promise.all([
       b.supabase.from("blockers").select("id", { count: "exact", head: true }).eq("project_id", projectId).eq("status", "open"),
@@ -37,6 +38,25 @@ export default async function ProjectLayout({ children, params }: LayoutProps<"/
         .is("addressed_at", null)
         .in("kind", ["change_request", "question"]),
     ]),
+    // Which tabs have ever had anything in them (calm redesign spec, Phase 03).
+    Promise.all([
+      b.supabase.from("remarks").select("id", { count: "exact", head: true }).eq("project_id", projectId),
+      b.supabase.from("attachments").select("id", { count: "exact", head: true }).eq("project_id", projectId),
+      b.supabase.from("blockers").select("id", { count: "exact", head: true }).eq("project_id", projectId),
+      b.supabase.from("decisions").select("id", { count: "exact", head: true }).eq("project_id", projectId),
+    ]),
+    getDisclosure(),
+  ]);
+  const showAllTabs = disclosure.all;
+  const unlockedTabs = new Set([
+    "",
+    "tasks",
+    "logs",
+    ...(showAllTabs || b.milestones.some((m) => m.due_date) ? ["timeline"] : []),
+    ...(showAllTabs || (used[0].count ?? 0) > 0 ? ["remarks"] : []),
+    ...(showAllTabs || (used[1].count ?? 0) > 0 ? ["files"] : []),
+    ...(showAllTabs || (used[2].count ?? 0) > 0 ? ["blockers"] : []),
+    ...(showAllTabs || (used[3].count ?? 0) > 0 ? ["decisions"] : []),
   ]);
 
   const nextProfessorDeadline = b.tasks
@@ -90,7 +110,7 @@ export default async function ProjectLayout({ children, params }: LayoutProps<"/
         </div>
         <ProjectSettings project={project} members={b.members} people={people ?? []} isProfessor={b.myRole === "professor"} />
       </header>
-      <ProjectTabs projectId={project.id} counts={{ tasks: open, blockers: counts[0].count ?? 0, remarks: counts[1].count ?? 0 }} />
+      <ProjectTabs projectId={project.id} counts={{ tasks: open, blockers: counts[0].count ?? 0, remarks: counts[1].count ?? 0 }} unlocked={[...unlockedTabs]} />
       {children}
     </div>
   );

@@ -199,12 +199,13 @@ export function CommandPalette({ role, projects }: { role: UserRole; projects: {
   );
 }
 
-export function SearchButton() {
+/** `hint` shows the ⌘K shortcut (from stage 3, once habits form). */
+export function SearchButton({ hint = true }: { hint?: boolean }) {
   return (
     <Button variant="outline" size="sm" className="h-8 gap-2 text-muted-foreground" onClick={openCommandPalette}>
       <Search className="size-3.5" />
       <span className="hidden sm:inline">Search…</span>
-      <kbd className="hidden sm:inline-flex">⌘K</kbd>
+      {hint && <kbd className="hidden sm:inline-flex">⌘K</kbd>}
     </Button>
   );
 }

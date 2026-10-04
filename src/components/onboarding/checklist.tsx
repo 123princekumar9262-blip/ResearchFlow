@@ -45,7 +45,7 @@ function Ring({ done, total }: { done: number; total: number }) {
  * Getting started · n of 5 (spec Phase 08). Each item ticks itself when the
  * work exists. The card goes after all five, or 14 days after sign-up.
  */
-export function GettingStarted({ items }: { items: ChecklistItem[] }) {
+export function GettingStarted({ items, compact = false }: { items: ChecklistItem[]; compact?: boolean }) {
   const api = useOnboarding();
   const done = items.filter((i) => i.done).length;
   const total = items.length;
@@ -64,6 +64,23 @@ export function GettingStarted({ items }: { items: ChecklistItem[] }) {
 
   if (api.state.legacy || api.accountAge >= 14) return null;
   if (finishedOn && finishedOn !== today) return null;
+
+  // Early accounts see one line, not a card (calm redesign spec, Phase 09).
+  if (compact && !complete) {
+    const next = items.find((i) => !i.done);
+    return (
+      <Link
+        id="getting-started"
+        href={next?.href ?? "/dashboard"}
+        className="flex items-center gap-2.5 rounded-lg px-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <span className="font-medium text-foreground">
+          Getting started · {done} of {total}
+        </span>
+        {next && <span className="min-w-0 truncate">Next: {next.label} →</span>}
+      </Link>
+    );
+  }
 
   if (complete) {
     return (

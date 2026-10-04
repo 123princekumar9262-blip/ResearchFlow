@@ -10,6 +10,7 @@ import { MobileTaskList } from "@/components/tasks/mobile-task-list";
 import { TaskBoard, type BoardTask } from "@/components/tasks/task-board";
 import { TaskDeadlines } from "@/components/tasks/task-row";
 import { getProjectBundle } from "@/lib/data/project";
+import { getDisclosure } from "@/lib/data/disclosure";
 import { compareByDeadline } from "@/lib/domain/deadlines";
 
 export default async function ProjectTasksPage({ params, searchParams }: PageProps<"/projects/[projectId]/tasks">) {
@@ -53,6 +54,10 @@ export default async function ProjectTasksPage({ params, searchParams }: PagePro
       (hide !== "done" || t.status !== "done"),
   );
 
+  // Filtering three tasks is noise: views and filters come with the fifth (or a filter already in the URL).
+  const { stage, all } = await getDisclosure();
+  const tools = allTasks.length >= 5 || stage === 3 || all || typeof assignee === "string" || typeof milestone === "string" || hide === "done" || listView;
+
   const lockProfessorDeadlines = !b.canSetProfessorDeadline;
   const load: Record<string, number> = {};
   for (const t of b.tasks) if (t.status !== "done" && t.effective_deadline) load[t.effective_deadline] = (load[t.effective_deadline] ?? 0) + 1;
@@ -60,41 +65,46 @@ export default async function ProjectTasksPage({ params, searchParams }: PagePro
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-md border p-0.5 max-md:hidden" role="group" aria-label="View">
-          {[
-            { key: "board", label: "Board", icon: Columns3, href: `/projects/${projectId}/tasks` },
-            { key: "list", label: "List", icon: List, href: `/projects/${projectId}/tasks?view=list` },
-          ].map((v) => {
-            const active = (v.key === "list") === listView;
-            return (
-              <Link
-                key={v.key}
-                href={v.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex h-7 items-center gap-1.5 rounded px-2.5 text-xs",
-                  active ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <v.icon className="size-3.5" /> {v.label}
-              </Link>
-            );
-          })}
-        </div>
-        <BoardFilters
-          assignees={b.members
-            .filter((m) => m.role === "student" || b.tasks.some((t) => t.assignee_id === m.user_id))
-            .map((m) => ({ value: m.user_id, label: m.user_id === b.userId ? "Me" : m.full_name }))}
-          milestones={b.milestones.map((m) => ({ value: m.id, label: m.title }))}
-          doneCount={allTasks.filter((t) => t.status === "done").length}
-        />
-        <p className="text-xs text-muted-foreground max-md:hidden">
-          {lockProfessorDeadlines
-            ? "Submitting for review needs evidence. Your professor approves."
-            : b.hasProfessor
-              ? "You approve tasks submitted for review."
-              : "Solo project: close tasks yourself once they have evidence."}
-        </p>
+        {/* Views and filters arrive with the fifth task (calm redesign spec, Phase 03). */}
+        {tools && (
+          <>
+            <div className="inline-flex rounded-md border p-0.5 max-md:hidden" role="group" aria-label="View">
+              {[
+                { key: "board", label: "Board", icon: Columns3, href: `/projects/${projectId}/tasks` },
+                { key: "list", label: "List", icon: List, href: `/projects/${projectId}/tasks?view=list` },
+              ].map((v) => {
+                const active = (v.key === "list") === listView;
+                return (
+                  <Link
+                    key={v.key}
+                    href={v.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex h-7 items-center gap-1.5 rounded px-2.5 text-xs",
+                      active ? "bg-accent font-medium" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <v.icon className="size-3.5" /> {v.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <BoardFilters
+              assignees={b.members
+                .filter((m) => m.role === "student" || b.tasks.some((t) => t.assignee_id === m.user_id))
+                .map((m) => ({ value: m.user_id, label: m.user_id === b.userId ? "Me" : m.full_name }))}
+              milestones={b.milestones.map((m) => ({ value: m.id, label: m.title }))}
+              doneCount={allTasks.filter((t) => t.status === "done").length}
+            />
+            <p className="text-xs text-muted-foreground max-md:hidden">
+              {lockProfessorDeadlines
+                ? "Submitting for review needs evidence. Your professor approves."
+                : b.hasProfessor
+                  ? "You approve tasks submitted for review."
+                  : "Solo project: close tasks yourself once they have evidence."}
+            </p>
+          </>
+        )}
         <div className="ml-auto">
           <NewTaskDialog
             projectId={projectId}

@@ -50,6 +50,7 @@ export function LogForm({
   defaultProjectId,
   defaultTaskIds = [],
   defaultMinutes,
+  defaultCompleted,
   previousPlans,
   touchedToday,
   variant = "page",
@@ -62,6 +63,8 @@ export function LogForm({
   defaultProjectId?: string;
   defaultTaskIds?: string[];
   defaultMinutes?: number;
+  /** Text to start "What did you complete?" with (focus-session notes). */
+  defaultCompleted?: string;
   /** Per project: the latest earlier log's "next steps", offered as today's starting point. */
   previousPlans: Record<string, { date: string; text: string }>;
   /** Tasks whose status you changed today, suggested first. */
@@ -91,7 +94,9 @@ export function LogForm({
   if (loadedKey !== key) {
     setLoadedKey(key);
     const first = loadedKey === "";
-    setCompleted(current?.completed_work ?? "");
+    const notes = first && defaultCompleted ? defaultCompleted.trim() : "";
+    setCompleted(current ? (notes && !current.completed_work.includes(notes) ? `${current.completed_work}
+${notes}` : current.completed_work) : notes);
     setProblems(current?.problems ?? "");
     setNextSteps(current?.next_steps ?? "");
     setMinutes(current?.minutes_spent ?? (first && defaultMinutes ? defaultMinutes : 0));

@@ -99,5 +99,7 @@ export function composerDefaults(params: Record<string, string | string[] | unde
     defaultProjectId: typeof params.project === "string" ? params.project : undefined,
     defaultTaskIds: typeof params.task === "string" ? [params.task] : [],
     defaultMinutes: typeof params.minutes === "string" ? Math.min(1440, Math.max(0, Number(params.minutes) || 0)) || undefined : undefined,
+    // Notes from a focus session start "What did you complete?".
+    defaultCompleted: typeof params.notes === "string" ? params.notes.slice(0, 2000) : undefined,
   };
 }

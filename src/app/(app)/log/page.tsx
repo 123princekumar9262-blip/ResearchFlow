@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, Stat } from "@/components/common/ui-bits";
 import { Heatmap } from "@/components/logs/heatmap";
 import { ChapterTrigger, Tip } from "@/components/onboarding/tips";
+import { getDisclosure } from "@/lib/data/disclosure";
 import { LogEntry } from "@/components/logs/log-entry";
 import { LogForm } from "@/components/logs/log-form";
 import { requireSession } from "@/lib/auth";
@@ -23,6 +24,8 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export default async function LogPage({ searchParams }: PageProps<"/log">) {
   const params = await searchParams;
   const { supabase, userId, profile, today } = await requireSession();
+  const disclosure = profile.role === "student" ? await getDisclosure() : null;
+  const stats = !disclosure || disclosure.has.logstats;
   if (profile.role === "professor") redirect("/dashboard");
 
   const projectFilter = typeof params.filter_project === "string" ? params.filter_project : "";
@@ -113,7 +116,7 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
           Your first entry starts the record.
         </Tip>
       )}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <div className={cn("grid gap-6", stats && "lg:grid-cols-[minmax(0,1fr)_260px]")}>
         <div className="min-w-0 space-y-6">
           <div className="max-md:hidden">
             <LogForm
@@ -194,79 +197,82 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
           )}
         </div>
 
-        <aside className="min-w-0 space-y-3 max-lg:order-first lg:sticky lg:top-16 lg:self-start">
-          <div data-tour="log-record" className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Stat label="This week" value={formatMinutes(week.at(-1)?.minutes ?? 0)} icon={Clock} accent="primary" />
-              <Stat label="Streak" value={`${logStreak(logs, today)}d`} hint="days in a row" icon={Flame} accent="deadline" />
-            </div>
-            <div className="rounded-[10px] border bg-card p-3 shadow-[var(--shadow-card)]">
-              <p className="mb-2 text-[12px] font-semibold">
-                Consistency · <span className="max-md:hidden">12 weeks</span>
-                <span className="md:hidden">6 weeks</span>
-              </p>
-              <div className="max-md:hidden">
-                <Heatmap cells={activityByDay(logs, today, 12)} today={today} />
+        {/* Streak, heatmap and filters arrive with the third entry (calm redesign spec, Phase 03). */}
+        {stats && (
+          <aside className="min-w-0 space-y-3 max-lg:order-first lg:sticky lg:top-16 lg:self-start">
+            <div data-tour="log-record" className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Stat label="This week" value={formatMinutes(week.at(-1)?.minutes ?? 0)} icon={Clock} accent="primary" />
+                <Stat label="Streak" value={`${logStreak(logs, today)}d`} hint="days in a row" icon={Flame} accent="deadline" />
               </div>
-              <div className="md:hidden">
-                <Heatmap cells={activityByDay(logs, today, 6)} today={today} />
+              <div className="rounded-[10px] border bg-card p-3 shadow-[var(--shadow-card)]">
+                <p className="mb-2 text-[12px] font-semibold">
+                  Consistency · <span className="max-md:hidden">12 weeks</span>
+                  <span className="md:hidden">6 weeks</span>
+                </p>
+                <div className="max-md:hidden">
+                  <Heatmap cells={activityByDay(logs, today, 12)} today={today} />
+                </div>
+                <div className="md:hidden">
+                  <Heatmap cells={activityByDay(logs, today, 6)} today={today} />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="space-y-1.5 rounded-[10px] border bg-card p-3 text-[12.5px] max-md:-mx-1 max-md:border-0 max-md:bg-transparent max-md:p-0">
-            <p className="text-[12px] font-semibold max-md:hidden">Filter</p>
-            <div className="flex flex-wrap gap-1.5 max-md:flex-nowrap max-md:overflow-x-auto max-md:px-1 max-md:pb-1 max-md:whitespace-nowrap">
-              <Link
-                href={filterHref({ filter_project: "" })}
-                className={cn("rounded-full border px-2.5 py-0.5", !projectFilter && "border-primary text-primary")}
-              >
-                All projects
-              </Link>
-              {(projects.data ?? []).map((p) => (
+            <div className="space-y-1.5 rounded-[10px] border bg-card p-3 text-[12.5px] max-md:-mx-1 max-md:border-0 max-md:bg-transparent max-md:p-0">
+              <p className="text-[12px] font-semibold max-md:hidden">Filter</p>
+              <div className="flex flex-wrap gap-1.5 max-md:flex-nowrap max-md:overflow-x-auto max-md:px-1 max-md:pb-1 max-md:whitespace-nowrap">
                 <Link
-                  key={p.id}
-                  href={filterHref({ filter_project: p.id })}
-                  className={cn(
-                    "max-w-full shrink-0 truncate rounded-full border px-2.5 py-0.5 max-md:max-w-52",
-                    projectFilter === p.id && "border-primary text-primary",
-                  )}
+                  href={filterHref({ filter_project: "" })}
+                  className={cn("rounded-full border px-2.5 py-0.5", !projectFilter && "border-primary text-primary")}
                 >
-                  {p.title}
+                  All projects
                 </Link>
-              ))}
+                {(projects.data ?? []).map((p) => (
+                  <Link
+                    key={p.id}
+                    href={filterHref({ filter_project: p.id })}
+                    className={cn(
+                      "max-w-full shrink-0 truncate rounded-full border px-2.5 py-0.5 max-md:max-w-52",
+                      projectFilter === p.id && "border-primary text-primary",
+                    )}
+                  >
+                    {p.title}
+                  </Link>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1 max-md:px-1">
+                {[
+                  ["problems", "Has problems"],
+                  ["files", "Has files"],
+                ].map(([key, label]) => (
+                  <Link
+                    key={key}
+                    href={filterHref({ only: only === key ? "" : key })}
+                    className={cn("rounded-full border px-2.5 py-0.5", only === key && "border-primary text-primary")}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1.5 pt-1 max-md:px-1">
-              {[
-                ["problems", "Has problems"],
-                ["files", "Has files"],
-              ].map(([key, label]) => (
-                <Link
-                  key={key}
-                  href={filterHref({ only: only === key ? "" : key })}
-                  className={cn("rounded-full border px-2.5 py-0.5", only === key && "border-primary text-primary")}
-                >
-                  {label}
-                </Link>
-              ))}
-            </div>
-          </div>
-          {logs.length > 0 && (
-            <div className="flex gap-2 rounded-[10px] border bg-card p-3 text-[12.5px] shadow-[var(--shadow-card)]">
-              <span className="mr-auto self-center font-semibold">Export</span>
-              <Button size="xs" variant="outline" asChild>
-                {/* A download, not a page: plain anchor so the router doesn't try to render it. */}
-                <a href="/log/export" download>
-                  <Download /> CSV
-                </a>
-              </Button>
-              <Button size="xs" variant="outline" asChild>
-                <Link href="/log/print">
-                  <FileText /> PDF
-                </Link>
-              </Button>
-            </div>
-          )}
-        </aside>
+            {logs.length > 0 && (
+              <div className="flex gap-2 rounded-[10px] border bg-card p-3 text-[12.5px] shadow-[var(--shadow-card)]">
+                <span className="mr-auto self-center font-semibold">Export</span>
+                <Button size="xs" variant="outline" asChild>
+                  {/* A download, not a page: plain anchor so the router doesn't try to render it. */}
+                  <a href="/log/export" download>
+                    <Download /> CSV
+                  </a>
+                </Button>
+                <Button size="xs" variant="outline" asChild>
+                  <Link href="/log/print">
+                    <FileText /> PDF
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </aside>
+        )}
       </div>
     </div>
   );

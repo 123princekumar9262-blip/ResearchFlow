@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowRight, CheckCircle2, CircleAlert, Clock, MessageSquareWarning, Sparkle } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleAlert, Clock, MessageSquareWarning, Sparkle, Target } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import type { NextAction } from "@/lib/domain/next-action";
@@ -21,10 +21,11 @@ const TONE = {
  * you're typing or a dialog is open. An optional secondary action sits beside
  * "Open" (e.g. "Convert to task" for a professor request).
  */
-export function NextActionCard({ action, secondary }: { action: NextAction; secondary?: React.ReactNode }) {
+export function NextActionCard({ action, secondary, focus = false }: { action: NextAction; secondary?: React.ReactNode; focus?: boolean }) {
   const router = useRouter();
   const tone = TONE[action.tone];
   const Icon = action.kind === "respond_remark" ? MessageSquareWarning : tone.icon;
+  const taskId = action.href.match(/^\/tasks\/([0-9a-f-]{36})$/i)?.[1];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -55,6 +56,14 @@ export function NextActionCard({ action, secondary }: { action: NextAction; seco
       <div className="flex flex-wrap gap-2 sm:justify-end">
         {/* Phones get one clear button; the secondary action lives on the item itself. */}
         {secondary && <span className="contents max-sm:hidden">{secondary}</span>}
+        {/* A task can be worked on straight away in focus mode (calm redesign spec, Phase 06). */}
+        {focus && taskId && !secondary && (
+          <Button variant="ghost" asChild className="text-muted-foreground max-sm:hidden">
+            <Link href={`/tasks/${taskId}?focus=1`}>
+              <Target /> Focus
+            </Link>
+          </Button>
+        )}
         <Button asChild className="flex-1 sm:flex-none">
           <Link href={action.href}>
             Open
