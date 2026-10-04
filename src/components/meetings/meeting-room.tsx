@@ -173,7 +173,7 @@ export function ActionItems({
   const { pending, run } = useServerAction();
 
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
       {items.length === 0 ? (
         <p className="text-[13px] text-muted-foreground">Nothing yet. Each item becomes a task for {role === "professor" ? studentFirstName : "you"}, with a deadline.</p>
       ) : (
@@ -193,7 +193,7 @@ export function ActionItems({
         <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">Action items need a project you share. Create one first.</p>
       ) : (
         <form
-          className="grid gap-2 rounded-lg border border-dashed p-2.5"
+          className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border border-dashed p-2.5"
           onSubmit={(e) => {
             e.preventDefault();
             run(() => addActionItem({ meetingId, projectId, title, due: due || null }), {
@@ -214,10 +214,11 @@ export function ActionItems({
               ))}
             </select>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <label className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
               Due
-              <Input type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} className="h-9 min-w-0 flex-1" aria-label="Due date" />
+              {/* Phone browsers give date fields a wide minimum; w-0 + flex-1 lets it shrink to fit. */}
+              <Input type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} className="h-9 w-0 min-w-0 flex-1" aria-label="Due date" />
             </label>
             <Button type="submit" size="sm" disabled={pending || !title.trim()} className="h-9 shrink-0">
               {pending ? <Loader2 className="animate-spin" /> : <Plus />} Add
