@@ -460,6 +460,15 @@ export type Database = {
           Rel<"weekly_reports_acknowledged_by_fkey", "acknowledged_by", "profiles">,
         ];
       };
+      blocker_comments: {
+        Row: { id: string; blocker_id: string; author_id: string; body: string; created_at: string };
+        Insert: { id?: string; blocker_id: string; author_id?: string; body: string };
+        Update: never;
+        Relationships: [
+          Rel<"blocker_comments_blocker_id_fkey", "blocker_id", "blockers">,
+          Rel<"blocker_comments_author_id_fkey", "author_id", "profiles">,
+        ];
+      };
       meetings: {
         Row: {
           id: string;
@@ -625,6 +634,7 @@ export type Decision = Tables<"decisions">;
 export type WeeklyReport = Tables<"weekly_reports">;
 export type ExtensionRequest = Tables<"extension_requests">;
 export type Meeting = Tables<"meetings">;
+export type BlockerComment = Tables<"blocker_comments">;
 export type MeetingTopic = Tables<"meeting_topics">;
 
 export type UserRole = Enums<"user_role">;

@@ -215,3 +215,90 @@ export function notifyMeeting(
     await pushToUsers([otherId], { ...message, url: event === "cancelled" ? "/meetings" : `/meetings/${meeting.id}`, tag: `meeting-${meeting.id}` }, URGENT);
   });
 }
+
+type Admin = NonNullable<ReturnType<typeof adminClient>>;
+
+/** Everyone in a blocker's conversation: whoever raised it, whoever replied, and the professors when it was flagged for them. */
+async function blockerPeople(admin: Admin, b: { id: string; project_id: string; raised_by: string; needs_professor: boolean }) {
+  const people = new Set<string>([b.raised_by]);
+  const { data: replies } = await admin.from("blocker_comments").select("author_id").eq("blocker_id", b.id);
+  for (const r of replies ?? []) people.add(r.author_id);
+  if (b.needs_professor) for (const id of await projectMembers(admin, b.project_id, "professor")) people.add(id);
+  return people;
+}
+
+/** A reply on a blocker reaches the rest of its conversation. */
+export function notifyBlockerReply(commentId: string, actorId: string) {
+  later(async (admin) => {
+    const { data: c } = await admin.from("blocker_comments").select("body, blocker_id").eq("id", commentId).maybeSingle();
+    if (!c) return;
+    const { data: b } = await admin.from("blockers").select("id, title, project_id, raised_by, needs_professor").eq("id", c.blocker_id).maybeSingle();
+    if (!b) return;
+    const people = await blockerPeople(admin, b);
+    // The student's reply should also reach the professors when they're answering one.
+    if (actorId === b.raised_by) for (const id of await projectMembers(admin, b.project_id, "professor")) people.add(id);
+    people.delete(actorId);
+    await pushToUsers(
+      [...people],
+      { title: `${shortName(await nameOf(admin, actorId))} replied on “${excerpt(b.title, 50)}”`, body: excerpt(c.body), url: `/projects/${b.project_id}/blockers#blocker-${b.id}`, tag: `blocker-${b.id}` },
+      URGENT,
+    );
+  });
+}
+
+/** Resolved or reopened: the other side of the blocker hears about it. */
+export function notifyBlockerStatus(blockerId: string, status: "resolved" | "open", actorId: string) {
+  later(async (admin) => {
+    const { data: b } = await admin.from("blockers").select("id, title, project_id, raised_by, needs_professor, resolution").eq("id", blockerId).maybeSingle();
+    if (!b) return;
+    const people = await blockerPeople(admin, b);
+    people.delete(actorId);
+    const who = shortName(await nameOf(admin, actorId));
+    await pushToUsers(
+      [...people],
+      {
+        title: status === "resolved" ? `${who} resolved “${excerpt(b.title, 50)}”` : `${who} reopened “${excerpt(b.title, 50)}”`,
+        body: status === "resolved" && b.resolution ? excerpt(b.resolution) : "It's open again.",
+        url: `/projects/${b.project_id}/blockers#blocker-${b.id}`,
+        tag: `blocker-${b.id}`,
+      },
+      URGENT,
+    );
+  });
+}
+
+/** The professor moved a deadline the student is held to. */
+export function notifyDeadlineMoved(taskId: string, from: string | null, actorId: string) {
+  later(async (admin) => {
+    const { data: t } = await admin.from("tasks").select("id, title, assignee_id, professor_deadline").eq("id", taskId).maybeSingle();
+    if (!t?.assignee_id || t.assignee_id === actorId || t.professor_deadline === from) return;
+    await pushToUsers(
+      [t.assignee_id],
+      {
+        title: t.professor_deadline ? `New deadline: ${t.professor_deadline}` : "Deadline removed",
+        body: from && t.professor_deadline ? `${t.title} (was ${from})` : t.title,
+        url: `/tasks/${t.id}`,
+        tag: `task-${t.id}`,
+      },
+      URGENT,
+    );
+  });
+}
+
+/** A weekly report was submitted (to the professors), or read (to the student). */
+export function notifyReport(reportId: string, event: "submitted" | "read", actorId: string) {
+  later(async (admin) => {
+    const { data: r } = await admin.from("weekly_reports").select("id, student_id, week_start").eq("id", reportId).maybeSingle();
+    if (!r) return;
+    if (event === "read") {
+      if (r.student_id === actorId) return;
+      await pushToUsers([r.student_id], { title: `${shortName(await nameOf(admin, actorId))} read your weekly report`, body: `Week of ${r.week_start}`, url: `/reports/${r.week_start}`, tag: `report-${r.id}` });
+      return;
+    }
+    const { data: profs } = await admin.from("supervisions").select("professor_id").eq("student_id", r.student_id);
+    await pushToUsers(
+      (profs ?? []).map((p) => p.professor_id).filter((id) => id !== actorId),
+      { title: `${shortName(await nameOf(admin, r.student_id))} submitted a weekly report`, body: `Week of ${r.week_start}`, url: `/reports/${r.week_start}?student=${r.student_id}`, tag: `report-${r.id}` },
+    );
+  });
+}

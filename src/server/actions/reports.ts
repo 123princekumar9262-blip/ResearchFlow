@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyReport } from "@/lib/notify/events";
 import { randomUUID } from "node:crypto";
 import { refresh } from "next/cache";
 import { z } from "zod";
@@ -45,6 +46,7 @@ export async function saveWeeklyReport(input: z.input<typeof draftSchema>) {
 
     if (d.submit) {
       unwrap(await supabase.from("weekly_reports").update({ submitted_at: new Date().toISOString() }).eq("id", row.id));
+      notifyReport(row.id, "submitted", userId);
     }
     refresh();
     return ok(row.id, d.submit ? `Report submitted: ${summarize(report.stats)}` : "Draft saved");
@@ -52,12 +54,13 @@ export async function saveWeeklyReport(input: z.input<typeof draftSchema>) {
 }
 
 export async function acknowledgeReport(input: { reportId: string }) {
-  return action(z.object({ reportId: id }), input, async (d, { supabase, profile }) => {
+  return action(z.object({ reportId: id }), input, async (d, { supabase, profile, userId }) => {
     if (profile.role !== "professor") return fail("Only a supervising professor can acknowledge a report.");
     const rows = unwrap(
       await supabase.from("weekly_reports").update({ acknowledged_at: new Date().toISOString() }).eq("id", d.reportId).select("id"),
     );
     if (rows.length === 0) return fail("You can't acknowledge this report.");
+    notifyReport(d.reportId, "read", userId);
     refresh();
     return ok(null, "Acknowledged. The student can see you read it.");
   });

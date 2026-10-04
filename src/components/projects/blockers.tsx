@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CircleCheck, Loader2, OctagonAlert, Plus, RotateCcw } from "lucide-react";
+import { CircleCheck, Loader2, MessageSquare, OctagonAlert, Plus, RotateCcw } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UserAvatar } from "@/components/common/ui-bits";
 import { useServerAction } from "@/components/common/use-server-action";
-import { raiseBlocker, reopenBlocker, resolveBlocker } from "@/server/actions/blockers";
+import { raiseBlocker, reopenBlocker, replyToBlocker, resolveBlocker } from "@/server/actions/blockers";
+import { timeAgo } from "@/lib/domain/dates";
 import type { Blocker, BlockerSeverity } from "@/types/database";
 
 const SEVERITY: Record<BlockerSeverity, string> = {
@@ -107,22 +108,40 @@ export function RaiseBlockerForm({ projectId, tasks, isStudent }: { projectId: s
   );
 }
 
+export interface BlockerReply {
+  id: string;
+  authorName: string;
+  body: string;
+  created_at: string;
+}
+
 export function BlockerCard({
   blocker,
   raisedBy,
   resolvedBy,
   task,
   ageDays,
+  replies = [],
 }: {
   blocker: Blocker;
   raisedBy: string;
   resolvedBy: string | null;
   task?: { id: string; title: string };
   ageDays: number;
+  replies?: BlockerReply[];
 }) {
   const [resolving, setResolving] = useState(false);
   const [resolution, setResolution] = useState("");
+  const [replying, setReplying] = useState(false);
+  const [reply, setReply] = useState("");
   const { pending, run } = useServerAction();
+  const sendReply = () =>
+    run(() => replyToBlocker({ blockerId: blocker.id, body: reply }), {
+      onSuccess: () => {
+        setReply("");
+        setReplying(false);
+      },
+    });
   const open = blocker.status === "open";
 
   return (
@@ -153,6 +172,45 @@ export function BlockerCard({
               <span className="font-medium text-success">Resolution:</span> {blocker.resolution}
             </p>
           )}
+          {replies.length > 0 && (
+            <div className="mt-3 space-y-2.5 border-t pt-3">
+              {replies.map((r) => (
+                <div key={r.id} className="flex gap-2 text-[13px]">
+                  <UserAvatar name={r.authorName} className="size-5 text-[8px]" />
+                  <p className="min-w-0 flex-1">
+                    <b className="font-semibold">{r.authorName}</b> <span className="text-muted-foreground">· {timeAgo(r.created_at)}</span>
+                    <span className="block whitespace-pre-line">{r.body}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          {replying && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (reply.trim()) sendReply();
+              }}
+              className="mt-3 space-y-2"
+            >
+              <Textarea
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                rows={2}
+                autoFocus
+                placeholder="Ask or answer something. They get a notification."
+                onKeyDown={(e) => e.key === "Enter" && (e.metaKey || e.ctrlKey) && reply.trim() && sendReply()}
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" size="sm" variant="ghost" onClick={() => setReplying(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={pending || !reply.trim()}>
+                  {pending && <Loader2 className="animate-spin" />} Reply
+                </Button>
+              </div>
+            </form>
+          )}
           {open && resolving && (
             <form
               onSubmit={(e) => {
@@ -161,7 +219,8 @@ export function BlockerCard({
               }}
               className="mt-3 space-y-2"
             >
-              <Textarea value={resolution} onChange={(e) => setResolution(e.target.value)} rows={2} placeholder="How was it resolved? The next person stuck here will thank you." autoFocus required />
+              <Textarea value={resolution} onChange={(e) => setResolution(e.target.value)} rows={2} placeholder="How was it fixed? This closes the blocker." autoFocus required />
+              <p className="text-xs text-muted-foreground">Want to ask or answer something instead? Cancel and use Reply: it keeps the blocker open.</p>
               <div className="flex justify-end gap-2">
                 <Button type="button" size="sm" variant="ghost" onClick={() => setResolving(false)}>
                   Cancel
@@ -173,10 +232,15 @@ export function BlockerCard({
             </form>
           )}
         </div>
-        {open && !resolving && (
-          <Button size="sm" variant="outline" onClick={() => setResolving(true)}>
-            Resolve
-          </Button>
+        {open && !resolving && !replying && (
+          <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
+            <Button size="sm" variant="ghost" onClick={() => setReplying(true)}>
+              <MessageSquare /> Reply
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setResolving(true)}>
+              Resolve
+            </Button>
+          </div>
         )}
         {!open && (
           <Button size="xs" variant="ghost" disabled={pending} onClick={() => run(() => reopenBlocker({ blockerId: blocker.id }))}>

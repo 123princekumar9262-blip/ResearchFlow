@@ -810,6 +810,28 @@ describe("meetings", () => {
   });
 });
 
+describe("blocker replies", () => {
+  let blocker;
+  before(async () => {
+    blocker = (await as(db, riya, (tx) => one(tx, "insert into blockers (project_id, raised_by, title, needs_professor) values ($1, $2, 'Output ripple too high', true) returning id", [project, riya]))).id;
+  });
+
+  it("lets the project's people talk on a blocker without resolving it", async () => {
+    await as(db, prof, (tx) => tx.query("insert into blocker_comments (blocker_id, body) values ($1, 'Still not working?')", [blocker]));
+    await as(db, riya, (tx) => tx.query("insert into blocker_comments (blocker_id, body) values ($1, 'Yes, trying a bigger inductor')", [blocker]));
+    const seen = await as(db, riya, (tx) => rows(tx, "select body from blocker_comments where blocker_id = $1 order by created_at", [blocker]));
+    assert.equal(seen.length, 2);
+    assert.equal((await one(db, "select status from blockers where id = $1", [blocker])).status, "open");
+  });
+
+  it("keeps them from outsiders, and from being posted as someone else", async () => {
+    const stranger = await signUp(db, { name: "Zed Stranger", role: "student" });
+    assert.equal((await as(db, stranger, (tx) => rows(tx, "select 1 from blocker_comments where blocker_id = $1", [blocker]))).length, 0);
+    await expectError(() => as(db, stranger, (tx) => tx.query("insert into blocker_comments (blocker_id, body) values ($1, 'hi')", [blocker])), /row-level security/);
+    await expectError(() => as(db, riya, (tx) => tx.query("insert into blocker_comments (blocker_id, author_id, body) values ($1, $2, 'fake')", [blocker, prof])), /row-level security/);
+  });
+});
+
 describe("sanity", () => {
   it("leaves today's helper consistent with the database clock", async () => {
     const { d } = await one(db, "select current_date::text as d");

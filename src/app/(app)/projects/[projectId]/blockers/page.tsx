@@ -7,6 +7,16 @@ export default async function ProjectBlockersPage({ params }: PageProps<"/projec
   const b = await getProjectBundle(projectId);
   const { data } = await b.supabase.from("blockers").select("*").eq("project_id", projectId).order("created_at", { ascending: false });
   const blockers = data ?? [];
+  // Before migration 12 there are no replies; the page works without them.
+  const { data: replyRows } = blockers.length
+    ? await b.supabase
+        .from("blocker_comments")
+        .select("id, blocker_id, body, created_at, author:profiles!blocker_comments_author_id_fkey(full_name)")
+        .in("blocker_id", blockers.map((x) => x.id))
+        .order("created_at")
+    : { data: [] };
+  const repliesFor = (blockerId: string) =>
+    (replyRows ?? []).filter((r) => r.blocker_id === blockerId).map((r) => ({ id: r.id, body: r.body, created_at: r.created_at, authorName: r.author?.full_name ?? "Someone" }));
   const names = new Map(b.members.map((m) => [m.user_id, m.full_name]));
   const tasks = new Map(b.tasks.map((t) => [t.id, t]));
   const open = blockers.filter((x) => x.status === "open");
@@ -20,6 +30,7 @@ export default async function ProjectBlockersPage({ params }: PageProps<"/projec
       resolvedBy={bl.resolved_by ? (names.get(bl.resolved_by) ?? null) : null}
       task={bl.task_id ? tasks.get(bl.task_id) : undefined}
       ageDays={daysBetween(dateIn(bl.created_at, b.profile.timezone), b.today)}
+      replies={repliesFor(bl.id)}
     />
   );
 
