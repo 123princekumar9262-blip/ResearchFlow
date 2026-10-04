@@ -2,7 +2,7 @@ import "server-only";
 
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { ApiError, GoogleGenAI, type GenerateContentConfig } from "@google/genai";
+import { ApiError, GoogleGenAI, type Content, type GenerateContentConfig } from "@google/genai";
 import { z } from "zod";
 
 /**
@@ -33,7 +33,7 @@ const GEMINI_FALLBACK = "gemini-flash-lite-latest";
 let gemini: GoogleGenAI | undefined;
 let anthropic: Anthropic | undefined;
 
-async function geminiGenerate(contents: string, config: GenerateContentConfig) {
+async function geminiGenerate(contents: string | Content[], config: GenerateContentConfig) {
   gemini ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   try {
     return await gemini.models.generateContent({ model: GEMINI_MODEL, contents, config });
@@ -68,6 +68,41 @@ export async function generateText(input: { system: string; prompt: string; maxT
       output_config: { effort: "low" },
       system: input.system,
       messages: [{ role: "user", content: input.prompt }],
+    });
+    if (res.stop_reason === "refusal") return null;
+    const text = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+    return text || null;
+  } catch (error) {
+    unavailable(error, input.what);
+  }
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  text: string;
+}
+
+/** A conversation: earlier turns plus the latest question. Returns null when the model says nothing. */
+export async function generateChat(input: { system: string; turns: ChatTurn[]; maxTokens: number; what: string }): Promise<string | null> {
+  const which = provider();
+  if (!which) throw new AiUnavailableError("AI features aren't configured on this server.");
+  try {
+    if (which === "gemini") {
+      const contents: Content[] = input.turns.map((t) => ({ role: t.role === "user" ? "user" : "model", parts: [{ text: t.text }] }));
+      const res = await geminiGenerate(contents, { systemInstruction: input.system, maxOutputTokens: input.maxTokens });
+      return res.text?.trim() || null;
+    }
+    anthropic ??= new Anthropic();
+    const res = await anthropic.messages.create({
+      model: ANTHROPIC_MODEL,
+      max_tokens: input.maxTokens,
+      output_config: { effort: "low" },
+      system: input.system,
+      messages: input.turns.map((t) => ({ role: t.role, content: t.text })),
     });
     if (res.stop_reason === "refusal") return null;
     const text = res.content

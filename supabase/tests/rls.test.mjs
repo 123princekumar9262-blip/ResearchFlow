@@ -742,6 +742,18 @@ describe("deleting a project", () => {
   });
 });
 
+describe("AI question allowance", () => {
+  it("records only the asker's own questions, and shows only their own", async () => {
+    await as(db, riya, (tx) => tx.query("insert into ai_questions default values"));
+    await as(db, riya, (tx) => tx.query("insert into ai_questions default values"));
+    const mine = await as(db, riya, (tx) => one(tx, "select count(*)::int as n from ai_questions where asked_at > now() - interval '24 hours'"));
+    assert.equal(mine.n, 2);
+    const theirs = await as(db, prof, (tx) => one(tx, "select count(*)::int as n from ai_questions"));
+    assert.equal(theirs.n, 0);
+    await expectError(() => as(db, prof, (tx) => tx.query("insert into ai_questions (user_id) values ($1)", [riya])), /row-level security/);
+  });
+});
+
 describe("sanity", () => {
   it("leaves today's helper consistent with the database clock", async () => {
     const { d } = await one(db, "select current_date::text as d");

@@ -26,6 +26,7 @@ import { InstallMenuItem } from "@/components/pwa/install";
 import { HelpMenu } from "@/components/onboarding/help";
 import { useOnboardingMaybe } from "@/components/onboarding/provider";
 import { FocusPill } from "@/components/tasks/focus-mode";
+import { AskAi, type AskAiProps } from "@/components/assistant/ask-ai";
 
 /** The page's name for the top bar, until a page supplies its own breadcrumb. */
 function titleFor(pathname: string, role: string): string {
@@ -45,7 +46,7 @@ function titleFor(pathname: string, role: string): string {
   return titles[section] ?? "ResearchFlow";
 }
 
-export function TopBar({ name, role, inbox, today }: { name: string; role: string; inbox: InboxItem[]; today: string }) {
+export function TopBar({ name, role, inbox, today, ai }: { name: string; role: string; inbox: InboxItem[]; today: string; ai?: AskAiProps }) {
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   // Progressive disclosure: a brand-new account sees title, Help and avatar only.
@@ -79,6 +80,7 @@ export function TopBar({ name, role, inbox, today }: { name: string; role: strin
           </Link>
         </Button>
       )}
+      {ai && stage >= 2 && <AskAi {...ai} />}
       <HelpMenu />
       {stage >= 2 && <InboxBell items={inbox} />}
       <DropdownMenu>

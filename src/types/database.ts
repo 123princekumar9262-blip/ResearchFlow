@@ -457,6 +457,12 @@ export type Database = {
           Rel<"weekly_reports_acknowledged_by_fkey", "acknowledged_by", "profiles">,
         ];
       };
+      ai_questions: {
+        Row: { id: number; user_id: string; asked_at: string };
+        Insert: { user_id?: string; asked_at?: string };
+        Update: never;
+        Relationships: [Rel<"ai_questions_user_id_fkey", "user_id", "profiles">];
+      };
       push_subscriptions: {
         Row: {
           id: string;
