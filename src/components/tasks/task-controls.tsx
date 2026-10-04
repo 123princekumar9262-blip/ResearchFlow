@@ -62,6 +62,26 @@ export function TaskStatusPanel({
         ? `Finish ${openDependencies.length === 1 ? `"${openDependencies[0]}"` : `${openDependencies.length} dependencies`} first.`
         : null;
 
+  if (isProfessor) {
+    const where: Record<TaskStatus, string> = {
+      todo: "Not started yet.",
+      in_progress: "The student is working on it.",
+      changes_requested: "Sent back with your remarks. Waiting for the student to resubmit.",
+      in_review: "Waiting for your review.",
+      done: task.requires_review ? "Approved and closed." : "Closed.",
+    };
+    return (
+      <div className="space-y-2">
+        <p className={cn("text-sm", task.status === "done" ? "text-success" : "text-muted-foreground")}>{where[task.status]}</p>
+        {task.status === "done" && (
+          <Button variant="ghost" size="sm" className="w-full" onClick={() => go("in_progress")} disabled={pending}>
+            <RotateCcw /> Reopen
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       {task.status === "todo" && (
@@ -279,17 +299,19 @@ export function TaskFields({
           {extensionSlot}
         </div>
       </Field>
-      <Field label="My deadline">
-        <DeadlinePicker
-          value={task.personal_deadline}
-          onChange={(d) => save({ taskId: task.id, personalDeadline: d ?? "" })}
-          today={today}
-          max={task.professor_deadline}
-          markers={{ ...markers, professorDeadline: task.professor_deadline }}
-          placeholder="Your own target"
-          className="h-8 border-transparent shadow-none hover:border-input"
-        />
-      </Field>
+      {!isProfessor && (
+        <Field label="My deadline">
+          <DeadlinePicker
+            value={task.personal_deadline}
+            onChange={(d) => save({ taskId: task.id, personalDeadline: d ?? "" })}
+            today={today}
+            max={task.professor_deadline}
+            markers={{ ...markers, professorDeadline: task.professor_deadline }}
+            placeholder="Your own target"
+            className="h-8 border-transparent shadow-none hover:border-input"
+          />
+        </Field>
+      )}
       <Field label="Milestone">
         <select className={selectClass} value={task.milestone_id ?? ""} onChange={(e) => save({ taskId: task.id, milestoneId: e.target.value })}>
           <option value="">None</option>

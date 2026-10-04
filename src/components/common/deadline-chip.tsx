@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "cn";
+import { useOnboardingMaybe } from "@/components/onboarding/provider";
 import { deadlineLabel, urgency, type Urgency } from "@/lib/domain/deadlines";
 import { formatDay } from "@/lib/domain/dates";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -43,6 +46,9 @@ export function DeadlineChip({
   locked?: boolean;
   className?: string;
 }) {
+  // A student's own target is theirs alone; professors work to the professor deadline.
+  const viewer = useOnboardingMaybe()?.role;
+  if (kind === "personal" && viewer === "professor") return null;
   const level = URGENCY_CLASS[urgency(date, today, status)];
   const tag = kind === "professor" ? "PROF" : kind === "personal" ? "ME" : "◆";
   const label = deadlineLabel(date, today);

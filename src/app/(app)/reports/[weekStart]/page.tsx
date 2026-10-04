@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "cn";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Pill } from "@/components/common/ui-bits";
 import { PageCrumbs } from "@/components/layout/page-crumbs";
@@ -24,6 +24,7 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
   const { supabase, userId, profile, today } = await requireSession();
   if (!isValidISODate(weekStart) || isoWeekday(weekStart) !== 1 || weekStart > weekStartOf(today)) notFound();
 
+  if (profile.role === "professor" && typeof student !== "string") redirect("/reports");
   const studentId = profile.role === "professor" && typeof student === "string" ? student : userId;
   const own = studentId === userId;
 

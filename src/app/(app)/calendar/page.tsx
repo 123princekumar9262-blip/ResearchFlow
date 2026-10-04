@@ -65,7 +65,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       personalDeadline: t.personal_deadline,
     };
     put(t.professor_deadline, { kind: "professor", ...base, draggable: t.status !== "done" && canMoveProfessor(t.project_id) });
-    if (t.personal_deadline && t.personal_deadline !== t.professor_deadline) put(t.personal_deadline, { kind: "personal", ...base, draggable: t.status !== "done" });
+    if (profile.role === "student" && t.personal_deadline && t.personal_deadline !== t.professor_deadline) put(t.personal_deadline, { kind: "personal", ...base, draggable: t.status !== "done" });
   }
 
   const logged = [...new Set(ws.myLogs.map((l) => l.log_date))];
@@ -188,7 +188,9 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </div>
 
       <p className="mt-3 hidden text-xs text-muted-foreground md:block">
-        PROF: professor deadline · ME (dashed): your own deadline · ◆ milestone · green dot: progress logged · drag your own deadlines to move them · ← → change month
+        {profile.role === "student"
+          ? "PROF: professor deadline · ME (dashed): your own deadline · ◆ milestone · green dot: progress logged · drag your own deadlines to move them · ← → change month"
+          : "PROF: professor deadline · ◆ milestone · drag a deadline to move it · ← → change month"}
       </p>
     </>
   );

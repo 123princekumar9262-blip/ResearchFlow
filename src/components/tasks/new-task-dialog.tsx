@@ -55,6 +55,7 @@ export function NewTaskDialog({
   // "No deadline set" (spec Phase 07): asked the first three times a task has no deadline.
   const [held, setHeld] = useState<{ form: FormData; again: boolean; el: HTMLFormElement } | null>(null);
   const students = members.filter((m) => m.role === "student");
+  const iAmProfessor = members.some((m) => m.user_id === me && m.role === "professor");
   const defaultAssignee = students.some((s) => s.user_id === me) ? me : students.length === 1 ? students[0].user_id : NONE;
 
   // "c" opens the dialog, Linear-style, when not typing.
@@ -118,7 +119,7 @@ export function NewTaskDialog({
             const again = (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "again";
             const form = e.currentTarget;
             const hints = onboarding?.state.hints ?? 0;
-            if (onboarding && !profDeadline && !personalDeadline && hints < 3 && !held) {
+            if (onboarding && !iAmProfessor && !profDeadline && !personalDeadline && hints < 3 && !held) {
               onboarding.update({ hints: hints + 1 });
               setHeld({ form: new FormData(form), again, el: form });
               return;
@@ -184,18 +185,20 @@ export function NewTaskDialog({
                 placeholder={canSetProfessorDeadline ? "None" : "Set by your professor"}
               />
             </div>
-            <div className="space-y-1.5" data-tour="nt-my-deadline">
-              <Label htmlFor="nt-md">Your deadline</Label>
-              <DeadlinePicker
-                id="nt-md"
-                value={personalDeadline}
-                onChange={setPersonalDeadline}
-                today={today}
-                max={profDeadline}
-                markers={{ ...markers, professorDeadline: profDeadline }}
-                placeholder="Your own target"
-              />
-            </div>
+            {!iAmProfessor && (
+              <div className="space-y-1.5" data-tour="nt-my-deadline">
+                <Label htmlFor="nt-md">Your deadline</Label>
+                <DeadlinePicker
+                  id="nt-md"
+                  value={personalDeadline}
+                  onChange={setPersonalDeadline}
+                  today={today}
+                  max={profDeadline}
+                  markers={{ ...markers, professorDeadline: profDeadline }}
+                  placeholder="Your own target"
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="nt-pr">Priority</Label>
               <NativeSelect id="nt-pr" name="priority" defaultValue="medium">
@@ -211,12 +214,13 @@ export function NewTaskDialog({
             </div>
           </div>
           {!canSetProfessorDeadline && (
-            <p className="text-xs text-muted-foreground">
-              Your professor sets professor deadlines. Set your own earlier target so you finish with a buffer.
-            </p>
+            <p className="text-xs text-muted-foreground">Your professor sets professor deadlines. Set your own earlier target so you finish with a buffer.</p>
           )}
           {held && !profDeadline && !personalDeadline && (
-            <div role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-warning/30 bg-warning/[0.07] px-3 py-2 text-[12.5px]">
+            <div
+              role="alert"
+              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-warning/30 bg-warning/[0.07] px-3 py-2 text-[12.5px]"
+            >
               <span className="min-w-0 flex-[1_1_14rem]">
                 <b className="font-semibold">No deadline set.</b> Tasks without deadlines drift. Add one, even a rough one.
               </span>

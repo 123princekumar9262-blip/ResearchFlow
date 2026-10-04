@@ -79,7 +79,8 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
   const minutes = logs.reduce((s, l) => s + l.minutes_spent, 0);
   const events = taskActivity({ task, changes: changes.data ?? [], logs, attachments: files, extensions });
   const load: Record<string, number> = {};
-  for (const t of b.tasks) if (t.id !== taskId && t.status !== "done" && t.effective_deadline) load[t.effective_deadline] = (load[t.effective_deadline] ?? 0) + 1;
+  for (const t of b.tasks)
+    if (t.id !== taskId && t.status !== "done" && t.effective_deadline) load[t.effective_deadline] = (load[t.effective_deadline] ?? 0) + 1;
 
   const missedProf = task.professor_deadline && task.professor_deadline < today && task.status !== "done" && task.status !== "in_review";
   const openRequests = remarks.filter((r) => r.kind === "change_request" && (!r.addressed_at || r.converted.some((c) => c.status !== "done")));
@@ -92,7 +93,9 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
       <PageCrumbs
         items={[
           { label: b.project.title, href: `/projects/${b.project.id}` },
-          milestone ? { glyph: "◆", label: milestone.title, href: `/projects/${b.project.id}/tasks` } : { label: "Tasks", href: `/projects/${b.project.id}/tasks` },
+          milestone
+            ? { glyph: "◆", label: milestone.title, href: `/projects/${b.project.id}/tasks` }
+            : { label: "Tasks", href: `/projects/${b.project.id}/tasks` },
           { label: task.title },
         ]}
       />
@@ -101,28 +104,32 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
           <div className="space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill status={task.status} />
-              {task.professor_deadline && <DeadlineChip date={task.professor_deadline} today={today} kind="professor" status={task.status} locked={studentLocked} />}
+              {task.professor_deadline && (
+                <DeadlineChip date={task.professor_deadline} today={today} kind="professor" status={task.status} locked={studentLocked} />
+              )}
               {task.personal_deadline && task.personal_deadline !== task.professor_deadline && (
                 <DeadlineChip date={task.personal_deadline} today={today} kind="personal" status={task.status} />
               )}
               <RiskDot risk={risk} />
               {openDeps.length > 0 && task.status !== "done" && <span className="text-xs text-muted-foreground">waiting on {openDeps.length}</span>}
               {task.completed_at && <span className="text-xs text-muted-foreground">closed {timeAgo(task.completed_at)}</span>}
-              <span className="ml-auto">
-                <FocusMode
-                  buttonClassName="max-md:hidden"
-                  loggedMinutes={minutes}
-                  estimateHours={task.estimate_hours === null ? null : Number(task.estimate_hours)}
-                  taskId={taskId}
-                  projectId={task.project_id}
-                  title={task.title}
-                  description={task.description}
-                  professorDeadline={task.professor_deadline}
-                  personalDeadline={task.personal_deadline}
-                  today={today}
-                  canLog={!isProfessor}
-                />
-              </span>
+              {!isProfessor && (
+                <span className="ml-auto">
+                  <FocusMode
+                    buttonClassName="max-md:hidden"
+                    loggedMinutes={minutes}
+                    estimateHours={task.estimate_hours === null ? null : Number(task.estimate_hours)}
+                    taskId={taskId}
+                    projectId={task.project_id}
+                    title={task.title}
+                    description={task.description}
+                    professorDeadline={task.professor_deadline}
+                    personalDeadline={task.personal_deadline}
+                    today={today}
+                    canLog
+                  />
+                </span>
+              )}
             </div>
             <TaskTitleEditor task={task} />
             {sourceRemark.data && (
@@ -138,11 +145,14 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
               <TriangleAlert className="size-4 shrink-0 text-danger" />
               <p className="min-w-0 flex-1">
                 <b className="text-danger">
-                  Missed the professor deadline by {daysBetween(task.professor_deadline!, today)} day{daysBetween(task.professor_deadline!, today) === 1 ? "" : "s"}.
+                  Missed the professor deadline by {daysBetween(task.professor_deadline!, today)} day
+                  {daysBetween(task.professor_deadline!, today) === 1 ? "" : "s"}.
                 </b>{" "}
                 <span className="text-muted-foreground">It stays on record. Finish it, or explain what&apos;s in the way.</span>
               </p>
-              {canRequestExtension && <RequestExtensionButton projectId={task.project_id} taskId={taskId} currentDeadline={task.professor_deadline} today={today} variant="button" />}
+              {canRequestExtension && (
+                <RequestExtensionButton projectId={task.project_id} taskId={taskId} currentDeadline={task.professor_deadline} today={today} variant="button" />
+              )}
               {!isProfessor && (
                 <Button asChild size="sm" variant="ghost">
                   <Link href={`/projects/${task.project_id}/blockers`}>Raise a blocker</Link>
@@ -152,10 +162,15 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
           )}
 
           {openRequests.length > 0 && task.status !== "done" && (
-            <a href={`#remark-${openRequests[0].id}`} className="flex items-center gap-2.5 rounded-xl border border-danger/30 bg-danger/[0.04] px-4 py-2.5 text-[12.5px] hover:bg-danger/[0.07]">
+            <a
+              href={`#remark-${openRequests[0].id}`}
+              className="flex items-center gap-2.5 rounded-xl border border-danger/30 bg-danger/[0.04] px-4 py-2.5 text-[12.5px] hover:bg-danger/[0.07]"
+            >
               <span className="size-2 shrink-0 rounded-full bg-danger" />
               <span>
-                <b>{openRequests[0].author_name} requested changes {timeAgo(openRequests[0].created_at)}.</b>{" "}
+                <b>
+                  {openRequests[0].author_name} requested changes {timeAgo(openRequests[0].created_at)}.
+                </b>{" "}
                 {openRequests[0].converted.length > 0
                   ? `${openRequests[0].converted.filter((c) => c.status === "done").length} of ${openRequests[0].converted.length} follow-up task${openRequests[0].converted.length === 1 ? "" : "s"} done.`
                   : "Not addressed yet."}
@@ -173,13 +188,17 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
             bodyClassName="p-0"
           >
             {logs.length === 0 && files.length === 0 && (
-              <p className="px-3.5 py-3 text-muted-foreground">No evidence yet. Log progress on this task or attach a file or link. Submitting needs at least one.</p>
+              <p className="px-3.5 py-3 text-muted-foreground">
+                No evidence yet. Log progress on this task or attach a file or link. Submitting needs at least one.
+              </p>
             )}
             {logs.length > 0 && (
               <ul className="divide-y">
                 {logs.map((l) => (
                   <li key={l.id} className="flex gap-3 px-3.5 py-2.5">
-                    <span className="w-16 shrink-0 pt-0.5 font-mono text-[11px] text-muted-foreground">{formatDay(l.log_date).split(" ").slice(0, 2).join(" ")}</span>
+                    <span className="w-16 shrink-0 pt-0.5 font-mono text-[11px] text-muted-foreground">
+                      {formatDay(l.log_date).split(" ").slice(0, 2).join(" ")}
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block whitespace-pre-line">{l.completed_work}</span>
                       <span className="mt-0.5 block text-xs text-muted-foreground">
@@ -208,7 +227,7 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
                   </Link>
                 </Button>
               )}
-              <EvidenceUploader projectId={task.project_id} target={{ taskId }} />
+              {!isProfessor && <EvidenceUploader projectId={task.project_id} target={{ taskId }} />}
             </div>
           </Section>
 
@@ -228,8 +247,19 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
             {isProfessor && task.status === "in_review" ? (
               <ReviewPanel taskId={taskId} />
             ) : (
-              <div data-tour="status-panel" className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 rounded-xl border bg-card/95 p-3 shadow-lg backdrop-blur">
-                <TaskStatusPanel task={task} isProfessor={isProfessor} hasProfessor={b.hasProfessor} evidenceCount={evidenceCount} openDependencies={openDeps.map((d) => d.title)} logHref={isProfessor ? undefined : logHref} compact />
+              <div
+                data-tour="status-panel"
+                className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 rounded-xl border bg-card/95 p-3 shadow-lg backdrop-blur"
+              >
+                <TaskStatusPanel
+                  task={task}
+                  isProfessor={isProfessor}
+                  hasProfessor={b.hasProfessor}
+                  evidenceCount={evidenceCount}
+                  openDependencies={openDeps.map((d) => d.title)}
+                  logHref={isProfessor ? undefined : logHref}
+                  compact
+                />
               </div>
             )}
           </div>
@@ -241,7 +271,14 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
               <ReviewPanel taskId={taskId} />
             ) : (
               <div className="rounded-[10px] border bg-card p-3">
-                <TaskStatusPanel task={task} isProfessor={isProfessor} hasProfessor={b.hasProfessor} evidenceCount={evidenceCount} openDependencies={openDeps.map((d) => d.title)} logHref={isProfessor ? undefined : logHref} />
+                <TaskStatusPanel
+                  task={task}
+                  isProfessor={isProfessor}
+                  hasProfessor={b.hasProfessor}
+                  evidenceCount={evidenceCount}
+                  openDependencies={openDeps.map((d) => d.title)}
+                  logHref={isProfessor ? undefined : logHref}
+                />
               </div>
             )}
           </div>
@@ -266,83 +303,88 @@ export default async function TaskPage({ params }: PageProps<"/tasks/[taskId]">)
           )}
 
           <MobileDetails summary="Details" hint="Assignee, deadlines, dependencies, history">
-          <div className="rounded-[10px] border bg-card px-3 py-1">
-            {task.estimate_hours !== null && (
-              <div className="flex items-center gap-3 border-b py-2.5 text-xs">
-                <span className="w-24 shrink-0 text-muted-foreground">Logged</span>
-                <ProgressBar value={minutes / (Number(task.estimate_hours) * 60)} tone={minutes > Number(task.estimate_hours) * 60 ? "danger" : "primary"} className="flex-1" />
-                <span className="shrink-0 font-mono tabular">
-                  {formatMinutes(minutes)} / {formatMinutes(Number(task.estimate_hours) * 60)}
-                </span>
+            <div className="rounded-[10px] border bg-card px-3 py-1">
+              {task.estimate_hours !== null && (
+                <div className="flex items-center gap-3 border-b py-2.5 text-xs">
+                  <span className="w-24 shrink-0 text-muted-foreground">Logged</span>
+                  <ProgressBar
+                    value={minutes / (Number(task.estimate_hours) * 60)}
+                    tone={minutes > Number(task.estimate_hours) * 60 ? "danger" : "primary"}
+                    className="flex-1"
+                  />
+                  <span className="shrink-0 font-mono tabular">
+                    {formatMinutes(minutes)} / {formatMinutes(Number(task.estimate_hours) * 60)}
+                  </span>
+                </div>
+              )}
+              <TaskFields
+                task={task}
+                members={b.members}
+                milestones={b.milestones}
+                canSetProfessorDeadline={b.canSetProfessorDeadline}
+                isProfessor={isProfessor}
+                today={today}
+                load={load}
+                extensionSlot={
+                  canRequestExtension ? (
+                    <span key="extension" data-tour="extension" className="inline-flex">
+                      <RequestExtensionButton projectId={task.project_id} taskId={taskId} currentDeadline={task.professor_deadline} today={today} />
+                    </span>
+                  ) : undefined
+                }
+              />
+            </div>
+
+            <div className="rounded-[10px] border bg-card p-3" data-tour="dependencies">
+              <DependencyEditor
+                taskId={taskId}
+                dependsOn={dependsOn}
+                blocking={blocking}
+                candidates={b.tasks.filter((t) => t.status !== "done").map(({ id, title }) => ({ id, title }))}
+              />
+            </div>
+
+            {(changes.data ?? []).length > 0 && (
+              <div className="rounded-[10px] border bg-card p-3">
+                <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <History className="size-3.5" /> Deadline history
+                </p>
+                <ol className="space-y-1.5 text-xs">
+                  {(changes.data ?? []).map((c) => {
+                    const later = c.old_value && c.new_value && c.new_value > c.old_value;
+                    return (
+                      <li key={c.id} className="flex flex-wrap gap-x-1.5">
+                        <span className="font-medium">{c.field === "professor" ? "Prof" : "Mine"}:</span>
+                        <span className={cn(later && "text-warning")}>
+                          {c.old_value ? formatShortDate(c.old_value) : "none"} → {c.new_value ? formatShortDate(c.new_value) : "none"}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {c.changed_by ? (names[c.changed_by] ?? "someone") : "system"} · {timeAgo(c.changed_at)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
               </div>
             )}
-            <TaskFields
-              task={task}
-              members={b.members}
-              milestones={b.milestones}
-              canSetProfessorDeadline={b.canSetProfessorDeadline}
-              isProfessor={isProfessor}
-              today={today}
-              load={load}
-              extensionSlot={
-                canRequestExtension ? (
-                  <span key="extension" data-tour="extension" className="inline-flex">
-                    <RequestExtensionButton projectId={task.project_id} taskId={taskId} currentDeadline={task.professor_deadline} today={today} />
-                  </span>
-                ) : undefined
-              }
-            />
-          </div>
 
-          <div className="rounded-[10px] border bg-card p-3" data-tour="dependencies">
-            <DependencyEditor
-              taskId={taskId}
-              dependsOn={dependsOn}
-              blocking={blocking}
-              candidates={b.tasks.filter((t) => t.status !== "done").map(({ id, title }) => ({ id, title }))}
-            />
-          </div>
-
-          {(changes.data ?? []).length > 0 && (
-            <div className="rounded-[10px] border bg-card p-3">
-              <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                <History className="size-3.5" /> Deadline history
+            {extensions.filter((e) => e.status !== "pending").length > 0 && (
+              <p className="px-1 text-xs text-muted-foreground">
+                {extensions.filter((e) => e.status !== "pending").length} past extension request
+                {extensions.filter((e) => e.status !== "pending").length === 1 ? "" : "s"} ·{" "}
+                {extensions
+                  .filter((e) => e.status !== "pending")
+                  .map((e) => `${e.status} for ${formatDay(e.proposed_deadline)}`)
+                  .join(", ")}
               </p>
-              <ol className="space-y-1.5 text-xs">
-                {(changes.data ?? []).map((c) => {
-                  const later = c.old_value && c.new_value && c.new_value > c.old_value;
-                  return (
-                    <li key={c.id} className="flex flex-wrap gap-x-1.5">
-                      <span className="font-medium">{c.field === "professor" ? "Prof" : "Mine"}:</span>
-                      <span className={cn(later && "text-warning")}>
-                        {c.old_value ? formatShortDate(c.old_value) : "none"} → {c.new_value ? formatShortDate(c.new_value) : "none"}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {c.changed_by ? (names[c.changed_by] ?? "someone") : "system"} · {timeAgo(c.changed_at)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          )}
-
-          {extensions.filter((e) => e.status !== "pending").length > 0 && (
+            )}
             <p className="px-1 text-xs text-muted-foreground">
-              {extensions.filter((e) => e.status !== "pending").length} past extension request{extensions.filter((e) => e.status !== "pending").length === 1 ? "" : "s"} ·{" "}
-              {extensions
-                .filter((e) => e.status !== "pending")
-                .map((e) => `${e.status} for ${formatDay(e.proposed_deadline)}`)
-                .join(", ")}
+              Created by {names[task.created_by] ?? "a former member"} {timeAgo(task.created_at)}
+              {task.submitted_at && ` · last submitted ${timeAgo(task.submitted_at)}`}
             </p>
-          )}
-          <p className="px-1 text-xs text-muted-foreground">
-            Created by {names[task.created_by] ?? "a former member"} {timeAgo(task.created_at)}
-            {task.submitted_at && ` · last submitted ${timeAgo(task.submitted_at)}`}
-          </p>
-          {(isProfessor || (task.created_by === userId && !task.professor_deadline && (task.status === "todo" || task.status === "in_progress"))) && (
-            <DeleteTaskButton taskId={taskId} projectId={task.project_id} />
-          )}
+            {(isProfessor || (task.created_by === userId && !task.professor_deadline && (task.status === "todo" || task.status === "in_progress"))) && (
+              <DeleteTaskButton taskId={taskId} projectId={task.project_id} />
+            )}
           </MobileDetails>
         </aside>
       </div>
