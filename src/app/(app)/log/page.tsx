@@ -13,7 +13,7 @@ import { requireSession } from "@/lib/auth";
 import { loadLogs } from "@/lib/data/logs";
 import { composerData } from "@/lib/data/log-composer";
 import { activityByDay, logStreak, minutesPerWeek } from "@/lib/domain/analytics";
-import { addDays, eachDay, formatMinutes, isoWeekday, isoWeekNumber, weekStartOf } from "@/lib/domain/dates";
+import { addDays, eachDay, formatMinutes, formatWeek, isoWeekday, weekStartOf } from "@/lib/domain/dates";
 
 export const metadata = { title: "Progress log" };
 
@@ -147,7 +147,7 @@ export default async function LogPage({ searchParams }: PageProps<"/log">) {
                   <li key={date} className={cn("list-none space-y-4", !showAll && date < phoneCutoff && "max-md:hidden")}>
                     {startsWeek && (
                       <div className="flex items-center gap-3 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                        Week {isoWeekNumber(date)}
+                        {formatWeek(weekStartOf(date))}
                         <span className="h-px flex-1 bg-border" />
                         <span className="font-mono font-medium tracking-normal normal-case">
                           {formatMinutes(weekTotal)} · {weekDays} day{weekDays === 1 ? "" : "s"}

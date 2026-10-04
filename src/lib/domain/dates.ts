@@ -92,6 +92,11 @@ export function formatShortDate(date: ISODate): string {
   return `${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1]}`;
 }
 
+/** A week by its dates, Monday to Sunday: "28 Sep – 4 Oct". */
+export function formatWeek(weekStart: ISODate): string {
+  return `${formatShortDate(weekStart)} – ${formatShortDate(addDays(weekStart, 6))}`;
+}
+
 export function formatMonth(date: ISODate): string {
   return `${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
 }

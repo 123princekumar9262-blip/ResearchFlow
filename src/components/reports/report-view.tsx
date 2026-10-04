@@ -62,7 +62,7 @@ export function ReportView({
   return (
     <article className="mx-auto grid max-w-[780px] gap-6 rounded-xl border bg-card px-5 py-7 sm:px-11 sm:py-9">
       <header className="grid gap-1 border-b pb-5">
-        <span className="text-[10.5px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">Weekly report · week {stats.weekNumber}</span>
+        <span className="text-[10.5px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">Weekly report</span>
         <h2 className="text-2xl font-semibold tracking-tight sm:text-[26px]">{studentName}</h2>
         <p className="text-muted-foreground">
           {formatDay(stats.weekStart)} – {formatDay(addDays(stats.weekStart, 6))}

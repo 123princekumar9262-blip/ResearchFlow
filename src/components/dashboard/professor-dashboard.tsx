@@ -15,7 +15,7 @@ import { MobileSummary } from "@/components/dashboard/mobile-summary";
 import { MoreForToday } from "@/components/dashboard/disclosure-bits";
 import { CopyInviteButton } from "@/components/onboarding/tip-kinds";
 import type { Disclosure } from "@/lib/onboarding/stage";
-import { daysBetween, formatDay, formatMinutes, isoWeekNumber, timeAgo, weekStartOf } from "@/lib/domain/dates";
+import { daysBetween, formatDay, formatMinutes, timeAgo, weekStartOf } from "@/lib/domain/dates";
 import { professorNextAction } from "@/lib/domain/next-action";
 import { percent, projectProgress } from "@/lib/domain/progress";
 import type { Workspace } from "@/lib/data/workspace";
@@ -354,7 +354,7 @@ export function ProfessorDashboard({ ws, extras, checklist, ui }: { ws: Workspac
           Your students <span className="font-medium text-muted-foreground">· {extras.students.length}</span>
         </h1>
         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-          {formatDay(today)} · Week {isoWeekNumber(today)}
+          {formatDay(today)}
         </p>
       </div>
       {active && (
@@ -413,7 +413,6 @@ export function ProfessorDashboard({ ws, extras, checklist, ui }: { ws: Workspac
             Your students <span className="font-medium text-muted-foreground">· {extras.students.length}</span>
           </>
         }
-        aside={`Week ${isoWeekNumber(today)}`}
         tiles={[
           { label: "Reviews waiting", value: pendingReviews.length, href: "/reviews", icon: Inbox, tone: "info", hot: pendingReviews.length > 0 },
           { label: "Blockers need you", value: needYou.length, href: "#blockers", icon: OctagonAlert, tone: "danger", hot: needYou.length > 0 },

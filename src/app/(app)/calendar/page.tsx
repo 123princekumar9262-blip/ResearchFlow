@@ -7,7 +7,7 @@ import { CalendarGrid, type CalendarItem } from "@/components/calendar/calendar-
 import { getWorkspace } from "@/lib/data/workspace";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { addDays, addMonths, eachDay, formatDay, formatMonth, formatMonthLong, isoWeekNumber, isValidISODate, monthStartOf, weekStartOf } from "@/lib/domain/dates";
+import { addDays, addMonths, eachDay, formatDay, formatMonth, formatMonthLong, isValidISODate, monthStartOf, weekStartOf } from "@/lib/domain/dates";
 
 export const metadata = { title: "Calendar" };
 
@@ -92,7 +92,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         ) : (
           <div className="flex flex-wrap items-center gap-1">
             <h1 className="mr-3 text-[22px] font-semibold tracking-tight">
-              Week {isoWeekNumber(weekStart)} <span className="text-base font-normal text-muted-foreground">· {formatDay(weekStart)} – {formatDay(addDays(weekStart, 6))}</span>
+              {formatDay(weekStart)} – {formatDay(addDays(weekStart, 6))}
             </h1>
             <Button variant="outline" size="icon-sm" asChild>
               <Link href={href({ week: addDays(weekStart, -7) })} aria-label="Previous week">

@@ -16,7 +16,7 @@ import { NotificationsTip } from "@/components/onboarding/tip-kinds";
 import { MobileSummary } from "@/components/dashboard/mobile-summary";
 import { LinkProfessorLater, MoreForToday } from "@/components/dashboard/disclosure-bits";
 import type { Disclosure } from "@/lib/onboarding/stage";
-import { addDays, daysBetween, formatDay, formatMinutes, isoWeekday, isoWeekNumber, timeAgo, weekdayShort } from "@/lib/domain/dates";
+import { addDays, daysBetween, formatDay, formatMinutes, isoWeekday, timeAgo, weekdayShort } from "@/lib/domain/dates";
 import { compareByDeadline } from "@/lib/domain/deadlines";
 import { remarksAwaiting, studentNextAction } from "@/lib/domain/next-action";
 import { percent, projectProgress } from "@/lib/domain/progress";
@@ -126,7 +126,7 @@ export function StudentDashboard({
           {greeting(profile.timezone)}, <span className="bg-grad-primary bg-clip-text text-transparent">{firstName}</span>
         </h1>
         <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-          {formatDay(today)} · Week {isoWeekNumber(today)} · day {isoWeekday(today)} of 7
+          {formatDay(today)}
         </p>
       </div>
       {plannedMinutes > 0 ? (
@@ -488,7 +488,6 @@ export function StudentDashboard({
             {greeting(profile.timezone)}, <span className="bg-grad-primary bg-clip-text text-transparent">{firstName}</span>
           </>
         }
-        aside={`Week ${isoWeekNumber(today)} · day ${isoWeekday(today)}`}
         tiles={[
           { label: "Overdue", value: overdue.length, href: "/tasks?view=overdue", icon: AlarmClock, tone: "danger", hot: overdue.length > 0 },
           { label: "Due today", value: dueToday.length, href: "/tasks?view=today", icon: Target, tone: "warning", hot: dueToday.length > 0 },

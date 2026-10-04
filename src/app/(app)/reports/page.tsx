@@ -2,7 +2,7 @@ import { CheckCircle2, Circle, CircleDashed, ScrollText, Send } from "lucide-rea
 import { EmptyState, PageHeader, RowLink, UserAvatar } from "@/components/common/ui-bits";
 import { requireSession } from "@/lib/auth";
 import { firstReportWeek, readStats } from "@/lib/data/reports";
-import { addDays, formatDay, formatMinutes, isoWeekday, isoWeekNumber, timeAgo, weekStartOf } from "@/lib/domain/dates";
+import { addDays, formatDay, formatMinutes, isoWeekday, timeAgo, weekStartOf } from "@/lib/domain/dates";
 import { summarize } from "@/lib/domain/weekly-report";
 import { Tip } from "@/components/onboarding/tips";
 
@@ -57,7 +57,7 @@ export default async function ReportsPage() {
             {weeks.map((w) => (
               <section key={w}>
                 <h2 className="mb-2 text-xs font-medium text-muted-foreground">
-                  Week {isoWeekNumber(w)} · {formatDay(w)} – {formatDay(addDays(w, 6))}
+                  {formatDay(w)} – {formatDay(addDays(w, 6))}
                 </h2>
                 <div className="divide-y rounded-xl border bg-card">
                   {reports
@@ -127,7 +127,7 @@ export default async function ReportsPage() {
               )}
               <span className="min-w-0 flex-1">
                 <span className="block font-medium">
-                  Week {isoWeekNumber(w)} <span className="font-normal text-muted-foreground">· {formatDay(w)} – {formatDay(addDays(w, 6))}</span>
+                  {formatDay(w)} – {formatDay(addDays(w, 6))}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {stats ? summarize(stats) : state === "current" ? "This week: open it to see your draft" : "Not written"}

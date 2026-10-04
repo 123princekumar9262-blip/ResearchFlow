@@ -11,11 +11,11 @@ import { AcknowledgeButton, PrintButton, ReportEditor, ShareControls } from "@/c
 import { requireSession } from "@/lib/auth";
 import { isAiEnabled } from "@/lib/ai/remark-to-tasks";
 import { firstReportWeek, generateWeeklyReport, readStats } from "@/lib/data/reports";
-import { addDays, formatDay, isValidISODate, isoWeekNumber, isoWeekday, timeAgo, weekStartOf } from "@/lib/domain/dates";
+import { addDays, formatDay, formatWeek, isValidISODate, isoWeekday, timeAgo, weekStartOf } from "@/lib/domain/dates";
 
 export async function generateMetadata({ params }: PageProps<"/reports/[weekStart]">) {
   const { weekStart } = await params;
-  return { title: isValidISODate(weekStart) ? `Week ${isoWeekNumber(weekStart)} report` : "Report" };
+  return { title: isValidISODate(weekStart) ? `Report · ${formatWeek(weekStart)}` : "Report" };
 }
 
 export default async function ReportPage({ params, searchParams }: PageProps<"/reports/[weekStart]">) {
@@ -48,8 +48,8 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
   if (beforeStart) {
     body = (
       <div className="rounded-xl border bg-card p-6 text-center shadow-[var(--shadow-card)]">
-        <p className="font-medium">Nothing to report for Week {isoWeekNumber(weekStart)}</p>
-        <p className="mt-1 text-muted-foreground">Your reports start in Week {isoWeekNumber(first!)}, the first week you used ResearchFlow.</p>
+        <p className="font-medium">Nothing to report for {formatWeek(weekStart)}</p>
+        <p className="mt-1 text-muted-foreground">Your reports start with the week of {formatWeek(first!)}, the first week you used ResearchFlow.</p>
         <Link href={nav(weekStartOf(today))} className="mt-4 inline-block font-medium text-primary underline-offset-4 hover:underline">
           Open this week&apos;s report
         </Link>
@@ -112,7 +112,7 @@ export default async function ReportPage({ params, searchParams }: PageProps<"/r
         ? `Submitted ${timeAgo(report.submitted_at!)}`
         : "Draft";
 
-  const week = (w: string) => `Week ${isoWeekNumber(w)}`;
+  const week = (w: string) => formatWeek(w);
 
   return (
     <>
